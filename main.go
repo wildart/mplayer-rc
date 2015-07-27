@@ -221,7 +221,7 @@ func processFlags() []string {
 			// only .m3u8 files are supported at present
 			for scanner.Scan() {
 				if scanner.Text() != "" {
-					if !strings.HasPrefix(scanner.Text(), "#EXT") {
+					if scanner.Text()[0] != '#' {
 						tracks = append(tracks, scanner.Text())
 					}
 				}
