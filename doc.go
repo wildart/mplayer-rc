@@ -49,8 +49,8 @@
 // 
 //   arc-port=...
 // 
-// to change the default listening port instead of using the --arc-port
-// flag.
+// to change the default listening port (8080) instead of using the
+// --arc-port flag.
 // 
 // Options
 // 
