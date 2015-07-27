@@ -487,7 +487,7 @@ func funcStop(in io.Writer, outChan <-chan string) {
 		}
 		io.WriteString(in, "stop\n")
 		// wait for mplayer to confirm stop
-		ticker := time.NewTicker(200 * time.Millisecond)
+		ticker := time.NewTicker(250 * time.Millisecond)
 		for {
 			select {
 			case <-ticker.C:
@@ -620,7 +620,7 @@ func startSelectLoop(in io.Writer, out, outerr io.Reader) chan<- command {
 	commandChan := make(chan command)
 	outChan := make(chan string, 1000)
 	sigChan := make(chan os.Signal, 1)
-	ticker := time.NewTicker(200 * time.Millisecond)
+	ticker := time.NewTicker(250 * time.Millisecond)
 	setupSIGCHLD(sigChan)
 	go func() {
 		<-sigChan
