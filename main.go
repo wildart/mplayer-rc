@@ -924,7 +924,9 @@ func startWebServer(commandChan chan<- command, password, port string) {
 
 func main() {
 	flags := processFlags()
+	// set default password/port
 	password, port := "", "8080"
+	// try to set password/port from config file
 	home := os.Getenv("HOME")
 	if runtime.GOOS == "windows" {
 		home = os.Getenv("USERPROFILE")
@@ -942,12 +944,14 @@ func main() {
 			}
 		}
 	}
+	// try to set password/port from flags
 	if flagPassword != "" {
 		password = flagPassword
 	}
 	if flagPort != "" {
 		port = flagPort
 	}
+	// if password not set, exit
 	if password == "" {
 		fmt.Fprint(os.Stderr,
 			`MPlayer-ARC needs to have a password which is used to authorize
@@ -960,6 +964,7 @@ in the file ~/.mplayer/mplayer-arc.
 `)
 		os.Exit(1)
 	}
+	// start mplayer, select loop and web server
 	in, out, outerr := launchMPlayer(flags)
 	commandChan := startSelectLoop(in, out, outerr)
 	commandChan <- command{kind: cmdPlay, input: -1} // initial play cmd
