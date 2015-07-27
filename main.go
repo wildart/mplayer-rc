@@ -404,6 +404,10 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 	} else {
 		playpos = idPosMap[id]
 	}
+	// if MPlayer could not play the previous file it will ignore the
+	// next command so, in case this is true, send it an arbitrary
+	// command first.
+	io.WriteString(in, "mute 0\n")
 	io.WriteString(in, "loadfile "+escapeTrack(idTrackMap[id])+"\n")
 	var playing bool
 	var playingFile string
