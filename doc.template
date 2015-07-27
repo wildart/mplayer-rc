@@ -9,11 +9,16 @@ MPlayer-ARC enables remote control of the MPlayer and MPlayer2 command
 line media players using an Android device (ARC meaning Android Remote
 Control). It is designed to work specifically with the Android
 application Android-VLC-Remote which can be obtained from
-https://f-droid.org or direct from the Android-VLC-Remote author at
-https://code.google.com/p/android-vlc-remote/. VLC itself is not
-required since MPlayer-ARC acts as a translator, conveying "VLC
-commands" received from the Android client to MPlayer and returning
-reponses back.
+
+  https://f-droid.org
+
+or direct from the Android-VLC-Remote author at
+
+  https://code.google.com/p/android-vlc-remote
+
+VLC itself is not required since MPlayer-ARC acts as a translator,
+conveying "VLC commands" received from the Android client to MPlayer
+and returning reponses back.
 
 Invoke MPlayer-ARC in the same way you would invoke MPlayer. For
 example:
