@@ -137,7 +137,7 @@ func processFlags() []string {
 			"    \tuse pass as the Android-VLC-Remote password\n")
 		fmt.Fprintf(os.Stderr, "  --arc-port port\n")
 		fmt.Fprintf(os.Stderr,
-			"    \tset the listening port for VLC commands (default 8080)\n")
+			"    \tuse port as the listening port for VLC commands (default 8080)\n")
 		fmt.Fprintf(os.Stderr, "  --mplayer-help\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tdisplay the MPlayer usage message\n")

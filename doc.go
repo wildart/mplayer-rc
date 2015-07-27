@@ -59,7 +59,7 @@
 //   --arc-password pass
 //         use pass as the Android-VLC-Remote password
 //   --arc-port port
-//         set the listening port for VLC commands (default 8080)
+//         use port as the listening port for VLC commands (default 8080)
 //   --mplayer-help
 //         display the MPlayer usage message
 // 
