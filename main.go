@@ -299,9 +299,9 @@ func addPlaylistEntry(track string) {
 }
 
 // launchMPlayer starts up mplayer with the provided flags in slave
-// mode as a background process. It returns mplayer's stdin, stdout
-// and stderr as io.Writer, io.Reader and io.Reader.
-func launchMPlayer(flags []string) (io.Writer, io.Reader, io.Reader) {
+// mode as a background process. It returns mplayer's stdin as an
+// io.Writer and combined stdout/stderr as a <-chan string.
+func launchMPlayer(flags []string) (io.Writer, <-chan string) {
 	flags = append(
 		[]string{"-idle", "-slave", "-quiet", "-noconsolecontrols"},
 		flags...)
@@ -310,32 +310,33 @@ func launchMPlayer(flags []string) (io.Writer, io.Reader, io.Reader) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
-	outerr, err := cmd.StderrPipe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	out, w := io.Pipe()
+	cmd.Stdout = w
+	cmd.Stderr = w
 	err = cmd.Start()
 	if err != nil {
 		log.Fatal(err)
 	}
+	outChan := make(chan string, 1000)
+	go func() {
+		scanner := bufio.NewScanner(out)
+		for scanner.Scan() {
+			outChan <- scanner.Text()
+		}
+	}()
 	// check for command line errors at mplayer startup
-	scanner := bufio.NewScanner(out)
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "Error ") {
+	for line := range outChan {
+		if strings.HasPrefix(line, "Error ") {
 			// mplayer has failed to parse it's command line or has
 			// otherwise failed to start
-			log.Fatal(errors.New("mplayer: " + scanner.Text()))
+			log.Fatal(errors.New("mplayer: " + line))
 		}
-		if strings.HasPrefix(scanner.Text(), "MPlayer") {
+		if strings.HasPrefix(line, "MPlayer") {
 			// all good hopefully...
 			break
 		}
 	}
-	return in, out, outerr
+	return in, outChan
 }
 
 // escapeTrack escapes a file name/url so it is suitable to pass
@@ -618,27 +619,14 @@ func funcGetProp(in io.Writer, outChan <-chan string, prop string) string {
 // has stopped playing and act accordingly. It also sets up a channel
 // to receive SIGCHILDs from mplayer and ensures the program exits
 // when receiving one.
-func startSelectLoop(in io.Writer, out, outerr io.Reader) chan<- command {
+func startSelectLoop(in io.Writer, outChan <-chan string) chan<- command {
 	commandChan := make(chan command)
-	outChan := make(chan string, 1000)
 	sigChan := make(chan os.Signal, 1)
 	ticker := time.NewTicker(250 * time.Millisecond)
 	setupSIGCHLD(sigChan)
 	go func() {
 		<-sigChan
 		os.Exit(0)
-	}()
-	go func() {
-		scanner := bufio.NewScanner(out)
-		for scanner.Scan() {
-			outChan <- scanner.Text()
-		}
-	}()
-	go func() {
-		scanner := bufio.NewScanner(outerr)
-		for scanner.Scan() {
-			outChan <- scanner.Text()
-		}
 	}()
 	go func() {
 		for {
@@ -974,8 +962,8 @@ in the file ~/.mplayer/mplayer-arc.
 		os.Exit(1)
 	}
 	// start mplayer, select loop and web server
-	in, out, outerr := launchMPlayer(flags)
-	commandChan := startSelectLoop(in, out, outerr)
+	in, outChan := launchMPlayer(flags)
+	commandChan := startSelectLoop(in, outChan)
 	commandChan <- command{kind: cmdPlay, input: -1} // initial play cmd
 	startWebServer(commandChan, password, port)
 }
