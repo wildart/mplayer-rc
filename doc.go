@@ -92,9 +92,10 @@
 // 
 //     • The "Subtitle track" button is repurposed to rewind by 10 seconds.
 // 
-// Having the subtitle track button remapped is convenient when needing
-// to quickly rewind a short way. The alternative of rewinding using the
-// Android-VLC-Remote progress slider is otherwise quite fiddly.
+// Having the subtitle track button remapped is convenient when
+// Android-VLC-Remote is used in portrait mode on a small screen. The
+// alternative of rewinding using the progress slider is otherwise quite
+// fiddly.
 // 
 // The following features of Android-VLC-Remote are working:
 // 
