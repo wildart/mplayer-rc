@@ -43,9 +43,11 @@
 // inform MPlayer-ARC about beforehand. For this you can use the special
 // command line flag --arc-password or put the line
 // 
-//    arc-password=...
+//   arc-password=...
 // 
-// in the file ~/.mplayer/mplayer-arc.
+// in the file ~/.mplayer/mplayer-arc. Similarly, you can also use
+// 
+//   arc-port=...
 // 
 // Options
 // 
