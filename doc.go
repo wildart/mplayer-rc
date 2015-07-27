@@ -48,6 +48,9 @@
 // 
 //   arc-port=...
 // 
+// to change the default listening port instead of using the --arc-port
+// flag.
+// 
 // Options
 // 
 // The following flags are available:

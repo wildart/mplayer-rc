@@ -41,6 +41,9 @@ in the file ~/.mplayer/mplayer-arc. Similarly, you can also use
 
   arc-port=...
 
+to change the default listening port instead of using the --arc-port
+flag.
+
 {{.Options}}
 
 Files
