@@ -235,9 +235,6 @@ func processFlags() []string {
 		}
 		flags = append(flags, a)
 	}
-	if len(tracks) == 0 {
-		flagUsage = true
-	}
 
 	// handle mplayer-arc flags
 	if flagVersion {
@@ -248,7 +245,7 @@ func processFlags() []string {
 		printMPlayerUsage()
 		os.Exit(1)
 	}
-	if flagUsage {
+	if flagUsage || len(tracks) == 0 {
 		printUsage()
 		os.Exit(2)
 	}
