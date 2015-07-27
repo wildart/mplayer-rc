@@ -85,17 +85,19 @@
 // whose parsing is less sophisticated than MPlayer's.
 // 
 // If the --remap-commands flag is given to MPlayer-RC or
-// remap-commands=true is set in its config file then two buttons within
+// remap-commands=true is set in its config file then some buttons within
 // Android-VLC-Remote are repurposed to be more useful:
 // 
 //     • The "Audio track" button is repurposed to cycle through OSD modes.
 // 
 //     • The "Subtitle track" button is repurposed to rewind by 10 seconds.
 // 
-// Having the subtitle track button remapped is convenient when
-// Android-VLC-Remote is used in portrait mode on a small screen. The
-// alternative of rewinding using the progress slider is otherwise quite
-// fiddly.
+//     • The "Aspect ratio" button is repurposed to fast forward by 10 seconds.
+// 
+// Having the subtitle track/aspect ratio buttons remapped is convenient
+// when Android-VLC-Remote is used in portrait mode on a small
+// screen. The alternative of fast forwarding/rewinding using the
+// progress slider is otherwise quite fiddly.
 // 
 // The following features of Android-VLC-Remote are working:
 // 

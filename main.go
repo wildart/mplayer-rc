@@ -298,8 +298,7 @@ var (
 	repeat bool
 	// the stopped state
 	stopped bool
-	// whether we are using alternate actions for audio track and
-	// subtitle track commands
+	// whether we are using alternate actions
 	remapCommands bool
 )
 
@@ -580,13 +579,18 @@ func funcRepeat() {
 }
 
 func funcAspect(in io.Writer, outChan <-chan string) {
-	if f, err := strconv.ParseFloat(
-		funcGetProp(in, outChan, "aspect"), 64); err == nil {
-		// flip between 16:9 and 4:3
-		if f < 1.5555 {
-			io.WriteString(in, "pausing_keep_force switch_ratio 1.7777\n")
-		} else {
-			io.WriteString(in, "pausing_keep_force switch_ratio 1.3333\n")
+	if remapCommands {
+		// repurpose to fast forward by 10 seconds
+		funcSeek(in, seekVal{val: +10, mode: 0})
+	} else {
+		if f, err := strconv.ParseFloat(
+			funcGetProp(in, outChan, "aspect"), 64); err == nil {
+			// flip between 16:9 and 4:3
+			if f < 1.5555 {
+				io.WriteString(in, "pausing_keep_force switch_ratio 1.7777\n")
+			} else {
+				io.WriteString(in, "pausing_keep_force switch_ratio 1.3333\n")
+			}
 		}
 	}
 }
