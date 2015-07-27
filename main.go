@@ -404,21 +404,21 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 	} else {
 		playpos = idPosMap[id]
 	}
-	// if MPlayer could not play the previous file it will ignore the
+	// if MPlayer could not play the previous track it will ignore the
 	// next command so, in case this is true, send it an arbitrary
 	// command first.
 	io.WriteString(in, "mute 0\n")
 	io.WriteString(in, "loadfile "+escapeTrack(idTrackMap[id])+"\n")
 	var playing bool
-	var playingFile string
+	var playingTrack string
 	for line := range outChan {
 		if strings.HasPrefix(line, "Playing ") && len(line) > len("Playing ") {
 			// len(line)-1 is to account for full stop
-			playingFile = line[len("Playing ") : len(line)-1]
+			playingTrack = line[len("Playing ") : len(line)-1]
 			playing = true
 		}
 		if line == "" && playing {
-			log.Println("mplayer: cannot play file: " + playingFile)
+			log.Println("mplayer: cannot play track: " + playingTrack)
 			funcNext(in, outChan)
 			return
 		}
