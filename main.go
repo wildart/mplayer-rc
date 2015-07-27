@@ -287,8 +287,8 @@ var (
 // 1,2,3 are used in the playlist template, so we start at 4.
 var idCounter int = 4
 
-// addPlaylistEntry adds a track to end of the playlist taking care to
-// update the playlist and shuffle state correctly.
+// addPlaylistEntry adds a track to the end of the playlist, taking
+// care to update the playlist and shuffle state correctly.
 func addPlaylistEntry(track string) {
 	playlist = append(playlist, idCounter)
 	idTrackMap[idCounter] = track
