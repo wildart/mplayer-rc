@@ -942,6 +942,13 @@ func main() {
 			if strings.HasPrefix(scanner.Text(), "arc-port=") {
 				port = scanner.Text()[len("arc-port="):]
 			}
+			// trim trailing spaces
+			for len(password) > 0 && password[len(password)-1] == ' ' {
+				password = password[:len(password)-1]
+			}
+			for len(port) > 0 && port[len(port)-1] == ' ' {
+				port = port[:len(port)-1]
+			}
 		}
 	}
 	// try to set password/port from flags
