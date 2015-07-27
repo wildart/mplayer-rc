@@ -105,6 +105,9 @@
 //   * Metadata - The metadata passed through to the information box is
 //     just the filename (as "title").
 // 
+// In testing, MPlayer2 seems to be more responsive than MPlayer with
+// certain types of files. It is not known why this is.
+// 
 // See also
 // 
 // mplayer(1)
