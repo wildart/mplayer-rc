@@ -1,22 +1,22 @@
 /*
-   Copyright 2015 The MPlayer-ARC Authors. See the AUTHORS file at the
+   Copyright 2015 The MPlayer-RC Authors. See the AUTHORS file at the
    top-level directory of this distribution and at
-   <https://xi2.org/x/mplayer-arc/AUTHORS>.
+   <https://xi2.org/x/mplayer-rc/AUTHORS>.
 
-   This file is part of MPlayer-ARC.
+   This file is part of MPlayer-RC.
 
-   MPlayer-ARC is free software: you can redistribute it and/or modify
+   MPlayer-RC is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published
    by the Free Software Foundation, either version 3 of the License,
    or (at your option) any later version.
 
-   MPlayer-ARC is distributed in the hope that it will be useful, but
+   MPlayer-RC is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with MPlayer-ARC.  If not, see <https://www.gnu.org/licenses/>.
+   along with MPlayer-RC.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 // API information
@@ -27,7 +27,7 @@
 //          https://wiki.videolan.org/Documentation:Modules/http_intf/
 //          https://raw.githubusercontent.com/videolan/vlc/master/share/lua/http/requests/README.txt
 
-package main // import "xi2.org/x/mplayer-arc"
+package main // import "xi2.org/x/mplayer-rc"
 
 //go:generate genman
 //go:generate go run genversion.go
@@ -59,25 +59,25 @@ import (
 // will set version via an init function to the current commit.
 var version = ""
 
-const license = `   Copyright 2015 The MPlayer-ARC Authors. See the AUTHORS file at the
+const license = `   Copyright 2015 The MPlayer-RC Authors. See the AUTHORS file at the
    top-level directory of this distribution and at
-   <https://xi2.org/x/mplayer-arc/AUTHORS>.
+   <https://xi2.org/x/mplayer-rc/AUTHORS>.
 
-   MPlayer-ARC is free software: you can redistribute it and/or modify
+   MPlayer-RC is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published
    by the Free Software Foundation, either version 3 of the License,
    or (at your option) any later version.
 
-   MPlayer-ARC is distributed in the hope that it will be useful, but
+   MPlayer-RC is distributed in the hope that it will be useful, but
    WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with MPlayer-ARC.  If not, see <https://www.gnu.org/licenses/>.
+   along with MPlayer-RC.  If not, see <https://www.gnu.org/licenses/>.
 
-   For further information about MPlayer-ARC visit
-   <https://xi2.org/x/mplayer-arc>.
+   For further information about MPlayer-RC visit
+   <https://xi2.org/x/mplayer-rc>.
 `
 
 var (
@@ -117,25 +117,25 @@ func isParameterFlag(flag string) bool {
 // the relevant command line arguments. It returns a list of flags to
 // be passed to mplayer.
 //
-// The mplayer-arc specific flags are handled as appropriate.
+// The mplayer-rc specific flags are handled as appropriate.
 //
 // The mplayer flags --playlist/-playlist and --shuffle/-shuffle are
-// handled by mplayer-arc and are not passed to mplayer.
+// handled by mplayer-rc and are not passed to mplayer.
 func processFlags() []string {
 	n := len(os.Args)
 
 	printUsage := func() {
 		fmt.Fprintf(os.Stderr,
-			"usage: %s [mplayer-arc or mplayer options] [files/URLs]\n",
+			"usage: %s [mplayer-rc or mplayer options] [files/URLs]\n",
 			filepath.Base(os.Args[0]))
 		// Go 1.5+ package flag compatible format
 		fmt.Fprintf(os.Stderr, "  -V\t")
 		fmt.Fprintf(os.Stderr,
 			"show version, license and further information\n")
-		fmt.Fprintf(os.Stderr, "  --arc-password pass\n")
+		fmt.Fprintf(os.Stderr, "  --rc-password pass\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse pass as the Android-VLC-Remote password\n")
-		fmt.Fprintf(os.Stderr, "  --arc-port port\n")
+		fmt.Fprintf(os.Stderr, "  --rc-port port\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse port as the listening port for VLC commands (default 8080)\n")
 		fmt.Fprintf(os.Stderr, "  --mplayer-help\n")
@@ -144,7 +144,7 @@ func processFlags() []string {
 	}
 	printVersion := func() {
 		if version != "" {
-			fmt.Fprintf(os.Stderr, "   MPlayer-ARC version %s\n\n", version)
+			fmt.Fprintf(os.Stderr, "   MPlayer-RC version %s\n\n", version)
 		}
 		fmt.Fprintf(os.Stderr, license)
 	}
@@ -166,20 +166,20 @@ func processFlags() []string {
 			tracks = append(tracks, a)
 			continue
 		}
-		if strings.HasPrefix(a, "--arc-password=") {
-			flagPassword = a[len("--arc-password="):]
+		if strings.HasPrefix(a, "--rc-password=") {
+			flagPassword = a[len("--rc-password="):]
 			continue
 		}
-		if i < n-1 && (a == "--arc-password" || a == "-arc-password") {
+		if i < n-1 && (a == "--rc-password" || a == "-rc-password") {
 			flagPassword = os.Args[i+1]
 			i++
 			continue
 		}
-		if strings.HasPrefix(a, "--arc-port=") {
-			flagPort = a[len("--arc-port="):]
+		if strings.HasPrefix(a, "--rc-port=") {
+			flagPort = a[len("--rc-port="):]
 			continue
 		}
-		if i < n-1 && (a == "--arc-port" || a == "-arc-port") {
+		if i < n-1 && (a == "--rc-port" || a == "-rc-port") {
 			flagPort = os.Args[i+1]
 			i++
 			continue
@@ -236,7 +236,7 @@ func processFlags() []string {
 		flags = append(flags, a)
 	}
 
-	// handle mplayer-arc flags
+	// handle mplayer-rc flags
 	if flagVersion {
 		printVersion()
 		os.Exit(1)
@@ -929,15 +929,15 @@ func main() {
 		home = os.Getenv("USERPROFILE")
 	}
 	b, err := ioutil.ReadFile(
-		filepath.Join(home, ".mplayer", "mplayer-arc"))
+		filepath.Join(home, ".mplayer", "mplayer-rc"))
 	if err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(b))
 		for scanner.Scan() {
-			if strings.HasPrefix(scanner.Text(), "arc-password=") {
-				password = scanner.Text()[len("arc-password="):]
+			if strings.HasPrefix(scanner.Text(), "rc-password=") {
+				password = scanner.Text()[len("rc-password="):]
 			}
-			if strings.HasPrefix(scanner.Text(), "arc-port=") {
-				port = scanner.Text()[len("arc-port="):]
+			if strings.HasPrefix(scanner.Text(), "rc-port=") {
+				port = scanner.Text()[len("rc-port="):]
 			}
 			// trim trailing spaces
 			for len(password) > 0 && password[len(password)-1] == ' ' {
@@ -958,13 +958,13 @@ func main() {
 	// if password not set, exit
 	if password == "" {
 		fmt.Fprint(os.Stderr,
-			`MPlayer-ARC needs to have a password which is used to authorize
+			`MPlayer-RC needs to have a password which is used to authorize
 Android-VLC-Remote. You can specify the password using the command
-line flag --arc-password=<pass> or by putting the line
+line flag --rc-password=<pass> or by putting the line
 
-  arc-password=<pass>
+  rc-password=<pass>
 
-in the file ~/.mplayer/mplayer-arc.
+in the file ~/.mplayer/mplayer-rc.
 `)
 		os.Exit(1)
 	}

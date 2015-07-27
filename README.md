@@ -1,7 +1,7 @@
-# MPlayer-ARC
+# MPlayer-RC
 
-MPlayer-ARC is a wrapper for MPlayer enabling Android remote control.
+MPlayer-RC is an MPlayer wrapper enabling remote control from a VLC client.
 
-Documentation at <https://godoc.org/xi2.org/x/mplayer-arc>.
+Documentation at <https://godoc.org/xi2.org/x/mplayer-rc>.
 
-Download and install with `go get xi2.org/x/mplayer-arc`.
+Download and install with `go get xi2.org/x/mplayer-rc`.
