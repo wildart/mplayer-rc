@@ -135,7 +135,7 @@ func processFlags() []string {
 			"show version, license and further information\n")
 		fmt.Fprintf(os.Stderr, "  --remap-commands\n")
 		fmt.Fprintf(os.Stderr,
-			"    \tuse alternate meanings for some VLC commands\n")
+			"    \tuse alternate actions for some VLC commands\n")
 		fmt.Fprintf(os.Stderr, "  --rc-password pass\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse pass as the Android-VLC-Remote password\n")
@@ -298,7 +298,7 @@ var (
 	repeat bool
 	// the stopped state
 	stopped bool
-	// whether we are using alternate meanings for audio track and
+	// whether we are using alternate actions for audio track and
 	// subtitle track commands
 	remapCommands bool
 )

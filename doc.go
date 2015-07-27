@@ -12,7 +12,7 @@
 // Description
 // 
 // MPlayer-RC enables remote control of the MPlayer and MPlayer2 command
-// line media players using a VLC client. It is designed to work
+// line media players from a VLC client. It is designed to work
 // specifically with the Android application Android-VLC-Remote which can
 // be obtained from F-Droid:
 // 
@@ -58,7 +58,7 @@
 // 
 //   -V    show version, license and further information
 //   --remap-commands
-//         use alternate meanings for some VLC commands
+//         use alternate actions for some VLC commands
 //   --rc-password pass
 //         use pass as the Android-VLC-Remote password
 //   --rc-port port
