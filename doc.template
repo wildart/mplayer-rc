@@ -11,14 +11,14 @@ be obtained from F-Droid:
 
   https://f-droid.org/repository/browse/?fdid=org.peterbaldwin.client.android.vlcremote
 
-or direct from the Android-VLC-Remote author at
+or directly from the Android-VLC-Remote author at
 
   https://code.google.com/p/android-vlc-remote
 
 Other VLC clients may work but are not tested. VLC itself is not
 required since MPlayer-RC acts as a translator, conveying "VLC
-commands" received from the Android client to MPlayer and returning
-responses back.
+commands" received from the client to MPlayer and returning responses
+back.
 
 Invoke MPlayer-RC in the same way you would invoke MPlayer. For
 example:
