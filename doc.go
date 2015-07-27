@@ -1,8 +1,7 @@
 // This file was automatically generated using Genman.
 // Do not edit.
 
-// MPlayer-ARC is a program for controlling MPlayer from an Android
-// device.
+// MPlayer-ARC is a wrapper for MPlayer enabling Android Remote Control.
 // 
 // Synopsis
 // 

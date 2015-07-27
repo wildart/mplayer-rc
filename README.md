@@ -1,6 +1,6 @@
 # MPlayer-ARC
 
-MPlayer-ARC is a program for controlling MPlayer from an Android device.
+MPlayer-ARC is a wrapper for MPlayer enabling Android Remote Control.
 
 Documentation at <https://godoc.org/xi2.org/x/mplayer-arc>.
 
