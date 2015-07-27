@@ -493,7 +493,8 @@ func funcStop(in io.Writer, outChan <-chan string) {
 			funcPause(in, outChan) // un-pause before stop
 		}
 		io.WriteString(in, "stop\n")
-		// wait for mplayer to confirm stop
+		// wait for mplayer to confirm stop before updating the
+		// stopped state
 		ticker := time.NewTicker(250 * time.Millisecond)
 		for {
 			select {
@@ -520,9 +521,11 @@ func funcShuffle() {
 		return
 	}
 	shuffle = true
+	// the set of positions to be shuffled. Position zero is not
+	// included since it will be used for the current track.
 	shufSet := make([]int, len(playlist)-1)
 	for i := range shufSet {
-		shufSet[i] = i + 1 // positions in shuffled playlist
+		shufSet[i] = i + 1
 	}
 	for i := range playlist {
 		if i == playpos {
