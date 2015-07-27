@@ -945,6 +945,13 @@ func startWebServer(commandChan chan<- command, password, port string) {
 	}
 }
 
+func trimTrailingSpace(s string) string {
+	for len(s) > 0 && s[len(s)-1] == ' ' {
+		s = s[:len(s)-1]
+	}
+	return s
+}
+
 // main
 
 func main() {
@@ -961,8 +968,15 @@ func main() {
 	if err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(b))
 		for scanner.Scan() {
+			if strings.HasPrefix(scanner.Text(), "remap-commands") {
+				p := trimTrailingSpace(scanner.Text())
+				if p == "remap-commands" {
+					remapCommands = true
+				}
+			}
 			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
 				p := scanner.Text()[len("remap-commands="):]
+				p = trimTrailingSpace(p)
 				switch p {
 				case "1", "t", "T", "true", "TRUE", "True",
 					"y", "Y", "yes", "YES", "Yes":
@@ -972,16 +986,11 @@ func main() {
 			if strings.HasPrefix(scanner.Text(), "rc-password=") {
 				password = scanner.Text()[len("rc-password="):]
 			}
+			password = trimTrailingSpace(password)
 			if strings.HasPrefix(scanner.Text(), "rc-port=") {
 				port = scanner.Text()[len("rc-port="):]
 			}
-			// trim trailing spaces
-			for len(password) > 0 && password[len(password)-1] == ' ' {
-				password = password[:len(password)-1]
-			}
-			for len(port) > 0 && port[len(port)-1] == ' ' {
-				port = port[:len(port)-1]
-			}
+			port = trimTrailingSpace(port)
 		}
 	}
 	// try to set them from flags
