@@ -1,7 +1,7 @@
 // This file was automatically generated using Genman.
 // Do not edit.
 
-// MPlayer-ARC is a wrapper for MPlayer enabling Android Remote Control.
+// MPlayer-ARC is a wrapper for MPlayer enabling Android remote control.
 // 
 // Synopsis
 // 
@@ -12,8 +12,8 @@
 // Description
 // 
 // MPlayer-ARC enables remote control of the MPlayer and MPlayer2 command
-// line media players using an Android device (ARC meaning Android Remote
-// Control). It is designed to work specifically with the Android
+// line media players using an Android device (ARC meaning Android remote
+// control). It is designed to work specifically with the Android
 // application Android-VLC-Remote which can be obtained from
 // 
 //   https://f-droid.org
