@@ -25,7 +25,7 @@
 // Other VLC remote clients may work but are not tested. VLC itself is
 // not required since MPlayer-ARC acts as a translator, conveying "VLC
 // commands" received from the Android client to MPlayer and returning
-// reponses back.
+// responses back.
 // 
 // Invoke MPlayer-ARC in the same way you would invoke MPlayer. For
 // example:
