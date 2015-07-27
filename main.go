@@ -408,6 +408,7 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 	var playingFile string
 	for line := range outChan {
 		if strings.HasPrefix(line, "Playing ") && len(line) > len("Playing ") {
+			// len(line)-1 is to account for full stop
 			playingFile = line[len("Playing ") : len(line)-1]
 			playing = true
 		}
