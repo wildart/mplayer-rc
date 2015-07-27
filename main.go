@@ -451,6 +451,7 @@ func funcNext(in io.Writer, outChan <-chan string) {
 			funcPlay(in, outChan, -1)
 		} else {
 			stopped = true
+			playpos = 0
 		}
 	}
 }
