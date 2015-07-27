@@ -406,7 +406,7 @@ type volumeVal struct {
 // seekVal is the type used as input for cmdSeek.
 type seekVal struct {
 	val  int // time in seconds (can be positive or negative value)
-	mode int // 0 relative, 2 absolute
+	mode int // 0 relative, 1 percent, 2 absolute
 }
 
 // funcPlay plays the track given by id or plays the current playlist
@@ -913,6 +913,11 @@ func startWebServer(commandChan chan<- command, password, port string) {
 				val := r.FormValue("val")
 				off := 0
 				var vv volumeVal
+				percent := false
+				if len(val) > 0 && val[len(val)-1] == '%' {
+					val = val[:len(val)-1]
+					percent = true
+				}
 				if len(val) > 0 {
 					switch val[0] {
 					case '+', '-', ' ':
@@ -921,6 +926,9 @@ func startWebServer(commandChan chan<- command, password, port string) {
 						vv.mode = 1
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
+						if percent {
+							i = i * 320 / 100
+						}
 						if val[0] == '-' {
 							vv.val = -i
 						} else {
@@ -931,18 +939,24 @@ func startWebServer(commandChan chan<- command, password, port string) {
 				}
 			case "seek":
 				val := r.FormValue("val")
+				off := 0
+				var sv seekVal
+				if len(val) > 0 && val[len(val)-1] == '%' {
+					val = val[:len(val)-1]
+					sv.mode = 1
+				}
 				if len(val) > 0 &&
 					(val[len(val)-1] == 's' || val[len(val)-1] == 'S') {
 					val = val[:len(val)-1]
 				}
-				off := 0
-				var sv seekVal
 				if len(val) > 0 {
 					switch val[0] {
 					case '+', '-', ' ':
 						off = 1
 					default:
-						sv.mode = 2
+						if sv.mode == 0 {
+							sv.mode = 2
+						}
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
 						if val[0] == '-' {
