@@ -126,7 +126,7 @@ func processFlags() []string {
 
 	printUsage := func() {
 		fmt.Fprintf(os.Stderr,
-			"usage: %s [mplayer-arc options] [mplayer options] [files/URLs]\n",
+			"usage: %s [mplayer-arc or mplayer options] [files/URLs]\n",
 			filepath.Base(os.Args[0]))
 		// Go 1.5+ package flag compatible format
 		fmt.Fprintf(os.Stderr, "  -V\t")

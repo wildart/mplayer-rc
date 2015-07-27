@@ -7,7 +7,7 @@
 // 
 // Usage:
 // 
-//   mplayer-arc [mplayer-arc options] [mplayer options] [files/URLs]
+//   mplayer-arc [mplayer-arc or mplayer options] [files/URLs]
 // 
 // Description
 // 
