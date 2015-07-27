@@ -397,6 +397,12 @@ type command struct {
 	replyChan chan<- interface{}
 }
 
+// volumeVal is the type used as input for cmdVolume
+type volumeVal struct {
+	val  int // volume (0 -> 320)
+	mode int // 0 relative, 1 absolute
+}
+
 // seekVal is the type used as input for cmdSeek.
 type seekVal struct {
 	val  int // time in seconds (can be positive or negative value)
@@ -606,9 +612,10 @@ func funcFullscreen(in io.Writer) {
 	io.WriteString(in, "pausing_keep_force vo_fullscreen\n")
 }
 
-func funcVolume(in io.Writer, volume int) {
+func funcVolume(in io.Writer, vv volumeVal) {
 	io.WriteString(in,
-		"pausing_keep_force volume "+strconv.Itoa(volume*100/320)+" 1\n")
+		"pausing_keep_force volume "+
+			strconv.Itoa(vv.val*100/320)+" "+strconv.Itoa(vv.mode)+"\n")
 }
 
 func funcSeek(in io.Writer, sv seekVal) {
@@ -693,7 +700,7 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- command {
 				case cmdFullscreen:
 					funcFullscreen(in)
 				case cmdVolume:
-					funcVolume(in, cmd.input.(int))
+					funcVolume(in, cmd.input.(volumeVal))
 				case cmdSeek:
 					funcSeek(in, cmd.input.(seekVal))
 				case cmdGetProp:
@@ -903,16 +910,36 @@ func startWebServer(commandChan chan<- command, password, port string) {
 			case "fullscreen":
 				commandChan <- command{kind: cmdFullscreen}
 			case "volume":
-				if i, err := strconv.Atoi(r.FormValue("val")); err == nil {
-					commandChan <- command{kind: cmdVolume, input: i}
+				val := r.FormValue("val")
+				off := 0
+				var vv volumeVal
+				if len(val) > 0 {
+					switch val[0] {
+					case '+', '-', ' ':
+						off = 1
+					default:
+						vv.mode = 1
+					}
+					if i, err := strconv.Atoi(val[off:]); err == nil {
+						if val[0] == '-' {
+							vv.val = -i
+						} else {
+							vv.val = i
+						}
+						commandChan <- command{kind: cmdVolume, input: vv}
+					}
 				}
 			case "seek":
 				val := r.FormValue("val")
+				if len(val) > 0 &&
+					(val[len(val)-1] == 's' || val[len(val)-1] == 'S') {
+					val = val[:len(val)-1]
+				}
 				off := 0
 				var sv seekVal
 				if len(val) > 0 {
 					switch val[0] {
-					case '+', '-':
+					case '+', '-', ' ':
 						off = 1
 					default:
 						sv.mode = 2
