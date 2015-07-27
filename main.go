@@ -83,10 +83,11 @@ const license = `   Copyright 2015 The MPlayer-RC Authors. See the AUTHORS file 
 var (
 	flagUsage bool
 
-	flagVersion      bool
-	flagPassword     string
-	flagPort         string
-	flagMPlayerUsage bool
+	flagVersion       bool
+	flagRemapCommands bool
+	flagPassword      string
+	flagPort          string
+	flagMPlayerUsage  bool
 )
 
 // isParameterFlag returns true if flag is an MPlayer flag requiring a
@@ -132,6 +133,9 @@ func processFlags() []string {
 		fmt.Fprintf(os.Stderr, "  -V\t")
 		fmt.Fprintf(os.Stderr,
 			"show version, license and further information\n")
+		fmt.Fprintf(os.Stderr, "  --remap-commands\n")
+		fmt.Fprintf(os.Stderr,
+			"    \tuse alternate meanings for some VLC commands\n")
 		fmt.Fprintf(os.Stderr, "  --rc-password pass\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse pass as the Android-VLC-Remote password\n")
@@ -164,6 +168,19 @@ func processFlags() []string {
 		}
 		if len(a) > 0 && a[0] != '-' {
 			tracks = append(tracks, a)
+			continue
+		}
+		if a == "--remap-commands" || a == "-remap-commands" {
+			flagRemapCommands = true
+			continue
+		}
+		if strings.HasPrefix(a, "--remap-commands=") {
+			p := a[len("--remap-commands="):]
+			switch p {
+			case "1", "t", "T", "true", "TRUE", "True",
+				"y", "Y", "yes", "YES", "Yes":
+				flagRemapCommands = true
+			}
 			continue
 		}
 		if strings.HasPrefix(a, "--rc-password=") {
@@ -281,6 +298,9 @@ var (
 	repeat bool
 	// the stopped state
 	stopped bool
+	// whether we are using alternate meanings for audio track and
+	// subtitle track commands
+	remapCommands bool
 )
 
 // idCounter is incremented on each creation of a playlist id. id
@@ -566,12 +586,20 @@ func funcAspect(in io.Writer, outChan <-chan string) {
 }
 
 func funcAudio(in io.Writer) {
-	// repurpose this as OSD toggle
-	io.WriteString(in, "pausing_keep_force osd\n")
+	if remapCommands {
+		// repurpose this as OSD toggle
+		io.WriteString(in, "pausing_keep_force osd\n")
+	} else {
+		io.WriteString(in, "pausing_keep_force switch_audio\n")
+	}
 }
 func funcSubtitle(in io.Writer, outChan <-chan string) {
-	// repurpose to rewind by 10 seconds
-	funcSeek(in, seekVal{val: -10, mode: 0})
+	if remapCommands {
+		// repurpose to rewind by 10 seconds
+		funcSeek(in, seekVal{val: -10, mode: 0})
+	} else {
+		io.WriteString(in, "pausing_keep_force sub_select\n")
+	}
 }
 
 func funcFullscreen(in io.Writer) {
@@ -921,9 +949,9 @@ func startWebServer(commandChan chan<- command, password, port string) {
 
 func main() {
 	flags := processFlags()
-	// set default password/port
+	// set defaults for password/port
 	password, port := "", "8080"
-	// try to set password/port from config file
+	// try to set remapCommands/password/port from config file
 	home := os.Getenv("HOME")
 	if runtime.GOOS == "windows" {
 		home = os.Getenv("USERPROFILE")
@@ -933,6 +961,14 @@ func main() {
 	if err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(b))
 		for scanner.Scan() {
+			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
+				p := scanner.Text()[len("remap-commands="):]
+				switch p {
+				case "1", "t", "T", "true", "TRUE", "True",
+					"y", "Y", "yes", "YES", "Yes":
+					remapCommands = true
+				}
+			}
 			if strings.HasPrefix(scanner.Text(), "rc-password=") {
 				password = scanner.Text()[len("rc-password="):]
 			}
@@ -948,7 +984,10 @@ func main() {
 			}
 		}
 	}
-	// try to set password/port from flags
+	// try to set them from flags
+	if flagRemapCommands == true {
+		remapCommands = true
+	}
 	if flagPassword != "" {
 		password = flagPassword
 	}

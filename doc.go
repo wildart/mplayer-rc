@@ -57,6 +57,8 @@
 // The following flags are available:
 // 
 //   -V    show version, license and further information
+//   --remap-commands
+//         use alternate meanings for some VLC commands
 //   --rc-password pass
 //         use pass as the Android-VLC-Remote password
 //   --rc-port port
@@ -82,13 +84,17 @@
 // MPlayer as a --playlist=... flag and is parsed instead by MPlayer-RC,
 // whose parsing is less sophisticated than MPlayer's.
 // 
-// The "Audio track" button within Android-VLC-Remote is repurposed to
-// cycle through OSD modes.
+// If the --remap-commands flag is given to MPlayer-RC or
+// remap-commands=true is set in its config file then two buttons within
+// Android-VLC-Remote are repurposed to be more useful:
 // 
-// The "Subtitle track" button is repurposed to rewind by 10
-// seconds. This is convenient when somebody talks over a part of a film
-// and you need to quickly rewind. The alternative of rewinding using the
-// Android-VLC-Remote progress slider is quite fiddly.
+//   * The "Audio track" button is repurposed to cycle through OSD modes.
+// 
+//   * The "Subtitle track" button is repurposed to rewind by 10 seconds.
+// 
+// Having the subtitle track button remapped is convenient when needing
+// to quickly rewind a short way. The alternative of rewinding using the
+// Android-VLC-Remote progress slider is otherwise quite fiddly.
 // 
 // The following features of Android-VLC-Remote are working:
 // 
