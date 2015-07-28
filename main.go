@@ -419,6 +419,9 @@ type cmdGetProp struct {
 type cmdGetPlaylistXML struct {
 	replyChan chan<- string
 }
+type cmdGetStatusXML struct {
+	replyChan chan<- string
+}
 
 // funcPlay plays the track given by id or plays the current playlist
 // entry if id is invalid. By convention -1 is the invalid id used to
@@ -722,6 +725,90 @@ func funcGetPlaylistXML() string {
 	return buf.String()
 }
 
+// status.xml
+
+const statusTmplTxt = `
+<root>
+
+<fullscreen>{{.Fullscreen}}</fullscreen>
+<volume>{{.Volume}}</volume>
+<loop>{{.Loop}}</loop>
+<random>{{.Random}}</random>
+<length>{{.Length}}</length>
+<repeat>{{.Repeat}}</repeat>
+<state>{{.State}}</state>
+<time>{{.Time}}</time>
+
+<information>
+<category name="meta">
+<info name='title'>{{.Title}}</info>
+<info name='filename'>{{.Filename}}</info>
+</category>
+</information>
+
+</root>
+`
+
+type statusTmplData struct {
+	Fullscreen bool
+	Volume     int
+	Loop       bool
+	Random     bool
+	Length     int
+	Repeat     bool
+	State      string
+	Time       int
+	Title      string
+	Filename   string
+}
+
+var statusTmpl = template.Must(template.New("status").Parse(statusTmplTxt))
+
+// funcGetStatusXML constructs status.xml.
+func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
+	data := &statusTmplData{}
+	getProp := func(prop string) string {
+		return funcGetProp(in, outChan, prop)
+	}
+	getFloat := func(prop string) float64 {
+		if f, err := strconv.ParseFloat(getProp(prop), 64); err == nil {
+			return f
+		} else {
+			return 0
+		}
+	}
+	getBool := func(prop string) bool {
+		if getProp(prop) == "yes" {
+			return true
+		} else {
+			return false
+		}
+	}
+	data.Fullscreen = getBool("fullscreen")
+	data.Volume = int(getFloat("volume")) * 320 / 100
+	data.Loop = loop
+	data.Random = shuffle
+	data.Length = int(getFloat("length"))
+	data.Repeat = repeat
+	data.State = getProp("state")
+	data.Time = int(getFloat("time_pos"))
+	filename := getProp("filename")
+	if filename != "ANS_ERROR=PROPERTY_UNAVAILABLE" {
+		data.Title = filename
+		data.Filename = filename
+	} else {
+		data.Title = ""
+		data.Filename = ""
+	}
+	buf := new(bytes.Buffer)
+	buf.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`)
+	err := statusTmpl.Execute(buf, data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return buf.String()
+}
+
 // startSelectLoop returns a command channel whose purpose is to
 // serialize the execution of commands sent to mplayer. In a goroutine
 // it uses select to wait on either a command over the command
@@ -775,6 +862,8 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 					cmd.replyChan <- funcGetProp(in, outChan, cmd.prop)
 				case cmdGetPlaylistXML:
 					cmd.replyChan <- funcGetPlaylistXML()
+				case cmdGetStatusXML:
+					cmd.replyChan <- funcGetStatusXML(in, outChan)
 				}
 			case <-outChan:
 				// discard unused output from mplayer
@@ -786,92 +875,6 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 		}
 	}()
 	return commandChan
-}
-
-// status.xml
-
-const statusTmplTxt = `
-<root>
-
-<fullscreen>{{.Fullscreen}}</fullscreen>
-<volume>{{.Volume}}</volume>
-<loop>{{.Loop}}</loop>
-<random>{{.Random}}</random>
-<length>{{.Length}}</length>
-<repeat>{{.Repeat}}</repeat>
-<state>{{.State}}</state>
-<time>{{.Time}}</time>
-
-<information>
-<category name="meta">
-<info name='title'>{{.Title}}</info>
-<info name='filename'>{{.Filename}}</info>
-</category>
-</information>
-
-</root>
-`
-
-type statusTmplData struct {
-	Fullscreen bool
-	Volume     int
-	Loop       bool
-	Random     bool
-	Length     int
-	Repeat     bool
-	State      string
-	Time       int
-	Title      string
-	Filename   string
-}
-
-var statusTmpl = template.Must(template.New("status").Parse(statusTmplTxt))
-
-// statusXML constructs status.xml.
-func statusXML(commandChan chan<- interface{}) string {
-	data := &statusTmplData{}
-	replyChan := make(chan string)
-	getProp := func(prop string) string {
-		commandChan <- cmdGetProp{prop: prop, replyChan: replyChan}
-		return <-replyChan
-	}
-	getFloat := func(prop string) float64 {
-		if f, err := strconv.ParseFloat(getProp(prop), 64); err == nil {
-			return f
-		} else {
-			return 0
-		}
-	}
-	getBool := func(prop string) bool {
-		if getProp(prop) == "yes" {
-			return true
-		} else {
-			return false
-		}
-	}
-	data.Fullscreen = getBool("fullscreen")
-	data.Volume = int(getFloat("volume")) * 320 / 100
-	data.Loop = loop
-	data.Random = shuffle
-	data.Length = int(getFloat("length"))
-	data.Repeat = repeat
-	data.State = getProp("state")
-	data.Time = int(getFloat("time_pos"))
-	if data.State != "stopped" {
-		filename := getProp("filename")
-		data.Title = filename
-		data.Filename = filename
-	} else {
-		data.Title = ""
-		data.Filename = ""
-	}
-	buf := new(bytes.Buffer)
-	buf.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`)
-	err := statusTmpl.Execute(buf, data)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return buf.String()
 }
 
 // the http server
@@ -985,7 +988,9 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				}
 			default:
 				// output status.xml
-				io.WriteString(w, statusXML(commandChan))
+				replyChan := make(chan string)
+				commandChan <- cmdGetStatusXML{replyChan: replyChan}
+				io.WriteString(w, <-replyChan)
 			}
 		})
 	http.HandleFunc(
