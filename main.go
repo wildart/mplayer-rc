@@ -518,7 +518,7 @@ func funcPrev(in io.Writer, outChan <-chan string) {
 }
 
 func funcPause(in io.Writer, outChan <-chan string) {
-	if funcGetProp(in, outChan, "state") == "stopped" {
+	if stopped {
 		funcPlay(in, outChan, -1)
 		return
 	}
@@ -526,7 +526,7 @@ func funcPause(in io.Writer, outChan <-chan string) {
 }
 
 func funcStop(in io.Writer, outChan <-chan string) {
-	if funcGetProp(in, outChan, "state") != "stopped" {
+	if !stopped {
 		if funcGetProp(in, outChan, "state") == "paused" {
 			funcPause(in, outChan) // un-pause before stop
 		}
