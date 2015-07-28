@@ -450,8 +450,12 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 // It does this by updating the playlist position and then calling
 // funcPlay.
 //
-// It will do nothing if playlist is empty or it is at the end of the
-// playlist and loop is false.
+// funcNext will do nothing if the playlist is empty.
+//
+// If it is at the end of the playlist and loop is false, then if
+// funcNext has been called as a result of a track finishing then it
+// will set playpos to 0 and stopped to true, otherwise it will do
+// nothing.
 func funcNext(in io.Writer, outChan <-chan string) {
 	if len(playlist) == 0 {
 		return
@@ -469,8 +473,10 @@ func funcNext(in io.Writer, outChan <-chan string) {
 			playpos = shufToPos[shufpos]
 			funcPlay(in, outChan, -1)
 		} else {
-			stopped = true
-			playpos = 0
+			if !stopped && funcGetProp(in, outChan, "state") == "stopped" {
+				stopped = true
+				playpos = 0
+			}
 		}
 	}
 }
@@ -702,10 +708,8 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 			case <-outChan:
 				// discard unused output from mplayer
 			case <-ticker.C:
-				if !stopped {
-					if funcGetProp(in, outChan, "state") == "stopped" {
-						funcNext(in, outChan)
-					}
+				if !stopped && funcGetProp(in, outChan, "state") == "stopped" {
+					funcNext(in, outChan)
 				}
 			}
 		}
