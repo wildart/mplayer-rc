@@ -592,7 +592,7 @@ func funcAudio(in io.Writer) {
 		io.WriteString(in, "pausing_keep_force switch_audio\n")
 	}
 }
-func funcSubtitle(in io.Writer, outChan <-chan string) {
+func funcSubtitle(in io.Writer) {
 	if remapCommands {
 		// repurpose to rewind by 10 seconds
 		funcSeek(in, -10, 0)
@@ -689,7 +689,7 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 				case cmdAudio:
 					funcAudio(in)
 				case cmdSubtitle:
-					funcSubtitle(in, outChan)
+					funcSubtitle(in)
 				case cmdFullscreen:
 					funcFullscreen(in)
 				case cmdVolume:
