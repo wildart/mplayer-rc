@@ -233,9 +233,27 @@ func processFlags() []string {
 			if err != nil {
 				log.Fatal(err)
 			}
+			// only .m3u8 files are supported at present
+			for _, s := range []struct {
+				header string
+				msg    string
+			}{{
+				header: "[playlist]",
+				msg:    "PLS format playlists not yet supported",
+			}, {
+				header: "<asx ",
+				msg:    "ASX format playlists not yet supported",
+			}, {
+				header: "<smil ",
+				msg:    "SMIL format playlists not yet supported",
+			}} {
+				if len(pl) >= len(s.header) &&
+					strings.ToLower(string(pl[:len(s.header)])) == s.header {
+					log.Fatalf("mplayer-rc: %s\n", s.msg)
+				}
+			}
 			scanner := bufio.NewScanner(bytes.NewBuffer(pl))
 			tracks = []string{}
-			// only .m3u8 files are supported at present
 			for scanner.Scan() {
 				if scanner.Text() != "" {
 					if scanner.Text()[0] != '#' {
