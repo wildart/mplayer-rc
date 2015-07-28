@@ -314,7 +314,9 @@ var (
 	// is for track looping. They are never both true at once.
 	loop   bool
 	repeat bool
-	// the stopped state
+	// the stopped state. We need this since mplayer can briefly
+	// transition into stopped state inbetween tracks when we are not
+	// really stopped.
 	stopped bool
 	// whether we are using alternate actions
 	remapCommands bool
