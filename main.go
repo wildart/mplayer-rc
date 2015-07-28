@@ -1034,13 +1034,13 @@ func main() {
 				}
 			}
 			if strings.HasPrefix(scanner.Text(), "rc-password=") {
-				password = scanner.Text()[len("rc-password="):]
+				p := scanner.Text()[len("rc-password="):]
+				password = trimTrailingSpace(p)
 			}
-			password = trimTrailingSpace(password)
 			if strings.HasPrefix(scanner.Text(), "rc-port=") {
-				port = scanner.Text()[len("rc-port="):]
+				p := scanner.Text()[len("rc-port="):]
+				port = trimTrailingSpace(p)
 			}
-			port = trimTrailingSpace(port)
 		}
 	}
 	// try to set them from flags
