@@ -385,7 +385,7 @@ type cmdAudio struct{}
 type cmdSubtitle struct{}
 type cmdFullscreen struct{} // a toggle
 type cmdVolume struct {
-	val  int // volume (0 -> 320 in absolute mode)
+	val  int // volume (0 -> 100 in absolute mode)
 	mode int // 0 relative, 1 absolute
 }
 type cmdSeek struct {
@@ -608,7 +608,7 @@ func funcFullscreen(in io.Writer) {
 func funcVolume(in io.Writer, val, mode int) {
 	io.WriteString(in,
 		"pausing_keep_force volume "+
-			strconv.Itoa(val*100/320)+" "+strconv.Itoa(mode)+"\n")
+			strconv.Itoa(val)+" "+strconv.Itoa(mode)+"\n")
 }
 
 func funcSeek(in io.Writer, val, mode int) {
@@ -916,8 +916,8 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 						mode = 1
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
-						if percent {
-							i = i * 320 / 100
+						if !percent {
+							i = i * 100 / 320
 						}
 						if val[0] == '-' {
 							i = -i
