@@ -370,42 +370,31 @@ func escapeTrack(track string) string {
 // "select loop" commands and their associated command functions.
 // each cmdXXX has a corresponding funcXXX.
 
-// command list.
-const (
-	cmdPlay = iota // input: track_id int
-	cmdNext
-	cmdPrev
-	cmdPause // a toggle
-	cmdStop
-	cmdShuffle // a toggle
-	cmdLoop    // a toggle
-	cmdRepeat  // a toggle
-	cmdAspect
-	cmdAudio
-	cmdSubtitle
-	cmdFullscreen // a toggle
-	cmdVolume     // input: volume int (0 -> 320?)
-	cmdSeek       // input: position seekVal (seconds and mode)
-	cmdGetProp    // input: prop string - reply: a string
-)
-
-// command is the type sent to the select loop.
-type command struct {
-	kind      int // cmdXXX
-	input     interface{}
-	replyChan chan<- interface{}
+type cmdPlay struct {
+	id int // track id
 }
-
-// volumeVal is the type used as input for cmdVolume
-type volumeVal struct {
-	val  int // volume (0 -> 320)
+type cmdNext struct{}
+type cmdPrev struct{}
+type cmdPause struct{} // a toggle
+type cmdStop struct{}
+type cmdShuffle struct{} // a toggle
+type cmdLoop struct{}    // a toggle
+type cmdRepeat struct{}  // a toggle
+type cmdAspect struct{}
+type cmdAudio struct{}
+type cmdSubtitle struct{}
+type cmdFullscreen struct{} // a toggle
+type cmdVolume struct {
+	val  int // volume (0 -> 320 in absolute mode)
 	mode int // 0 relative, 1 absolute
 }
-
-// seekVal is the type used as input for cmdSeek.
-type seekVal struct {
+type cmdSeek struct {
 	val  int // time in seconds (can be positive or negative value)
 	mode int // 0 relative, 1 percent, 2 absolute
+}
+type cmdGetProp struct {
+	prop      string
+	replyChan chan<- string
 }
 
 // funcPlay plays the track given by id or plays the current playlist
@@ -581,7 +570,7 @@ func funcRepeat() {
 func funcAspect(in io.Writer, outChan <-chan string) {
 	if remapCommands {
 		// repurpose to fast forward by 10 seconds
-		funcSeek(in, seekVal{val: +10, mode: 0})
+		funcSeek(in, +10, 0)
 	} else {
 		if f, err := strconv.ParseFloat(
 			funcGetProp(in, outChan, "aspect"), 64); err == nil {
@@ -606,7 +595,7 @@ func funcAudio(in io.Writer) {
 func funcSubtitle(in io.Writer, outChan <-chan string) {
 	if remapCommands {
 		// repurpose to rewind by 10 seconds
-		funcSeek(in, seekVal{val: -10, mode: 0})
+		funcSeek(in, -10, 0)
 	} else {
 		io.WriteString(in, "pausing_keep_force sub_select\n")
 	}
@@ -616,16 +605,16 @@ func funcFullscreen(in io.Writer) {
 	io.WriteString(in, "pausing_keep_force vo_fullscreen\n")
 }
 
-func funcVolume(in io.Writer, vv volumeVal) {
+func funcVolume(in io.Writer, val, mode int) {
 	io.WriteString(in,
 		"pausing_keep_force volume "+
-			strconv.Itoa(vv.val*100/320)+" "+strconv.Itoa(vv.mode)+"\n")
+			strconv.Itoa(val*100/320)+" "+strconv.Itoa(mode)+"\n")
 }
 
-func funcSeek(in io.Writer, sv seekVal) {
+func funcSeek(in io.Writer, val, mode int) {
 	io.WriteString(in,
 		"pausing_keep_force seek "+
-			strconv.Itoa(sv.val)+" "+strconv.Itoa(sv.mode)+"\n")
+			strconv.Itoa(val)+" "+strconv.Itoa(mode)+"\n")
 }
 
 // funcGetProp gets a property value. It also handles the
@@ -665,8 +654,8 @@ func funcGetProp(in io.Writer, outChan <-chan string, prop string) string {
 // has stopped playing and act accordingly. It also sets up a channel
 // to receive SIGCHILDs from mplayer and ensures the program exits
 // when receiving one.
-func startSelectLoop(in io.Writer, outChan <-chan string) chan<- command {
-	commandChan := make(chan command)
+func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
+	commandChan := make(chan interface{})
 	sigChan := make(chan os.Signal, 1)
 	ticker := time.NewTicker(250 * time.Millisecond)
 	setupSIGCHLD(sigChan)
@@ -677,10 +666,10 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- command {
 	go func() {
 		for {
 			select {
-			case cmd := <-commandChan:
-				switch cmd.kind {
+			case cmdIn := <-commandChan:
+				switch cmd := cmdIn.(type) {
 				case cmdPlay:
-					funcPlay(in, outChan, cmd.input.(int))
+					funcPlay(in, outChan, cmd.id)
 				case cmdNext:
 					funcNext(in, outChan)
 				case cmdPrev:
@@ -704,12 +693,11 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- command {
 				case cmdFullscreen:
 					funcFullscreen(in)
 				case cmdVolume:
-					funcVolume(in, cmd.input.(volumeVal))
+					funcVolume(in, cmd.val, cmd.mode)
 				case cmdSeek:
-					funcSeek(in, cmd.input.(seekVal))
+					funcSeek(in, cmd.val, cmd.mode)
 				case cmdGetProp:
-					cmd.replyChan <- funcGetProp(
-						in, outChan, cmd.input.(string))
+					cmd.replyChan <- funcGetProp(in, outChan, cmd.prop)
 				}
 			case <-ticker.C:
 				if !stopped {
@@ -809,13 +797,12 @@ type statusTmplData struct {
 var statusTmpl = template.Must(template.New("status").Parse(statusTmplTxt))
 
 // statusXML constructs status.xml.
-func statusXML(commandChan chan<- command) string {
+func statusXML(commandChan chan<- interface{}) string {
 	data := &statusTmplData{}
-	replyChan := make(chan interface{})
+	replyChan := make(chan string)
 	getProp := func(prop string) string {
-		commandChan <- command{
-			kind: cmdGetProp, input: prop, replyChan: replyChan}
-		return (<-replyChan).(string)
+		commandChan <- cmdGetProp{prop: prop, replyChan: replyChan}
+		return <-replyChan
 	}
 	getFloat := func(prop string) float64 {
 		if f, err := strconv.ParseFloat(getProp(prop), 64); err == nil {
@@ -873,7 +860,7 @@ func authorized(
 	return false
 }
 
-func startWebServer(commandChan chan<- command, password, port string) {
+func startWebServer(commandChan chan<- interface{}, password, port string) {
 	http.HandleFunc(
 		"/requests/status.xml", func(w http.ResponseWriter, r *http.Request) {
 			if !authorized(w, r, "", password) {
@@ -887,36 +874,35 @@ func startWebServer(commandChan chan<- command, password, port string) {
 						id = idVal
 					}
 				}
-				commandChan <- command{kind: cmdPlay, input: id}
+				commandChan <- cmdPlay{id: id}
 			case "pl_next":
-				commandChan <- command{kind: cmdNext}
+				commandChan <- cmdNext{}
 			case "pl_previous":
-				commandChan <- command{kind: cmdPrev}
+				commandChan <- cmdPrev{}
 			case "pl_pause":
-				commandChan <- command{kind: cmdPause}
+				commandChan <- cmdPause{}
 			case "pl_stop":
-				commandChan <- command{kind: cmdStop}
+				commandChan <- cmdStop{}
 			case "pl_random":
-				commandChan <- command{kind: cmdShuffle}
+				commandChan <- cmdShuffle{}
 			case "pl_loop":
-				commandChan <- command{kind: cmdLoop}
+				commandChan <- cmdLoop{}
 			case "pl_repeat":
-				commandChan <- command{kind: cmdRepeat}
+				commandChan <- cmdRepeat{}
 			case "key":
 				switch r.FormValue("val") {
 				case "aspect-ratio":
-					commandChan <- command{kind: cmdAspect}
+					commandChan <- cmdAspect{}
 				case "audio-track":
-					commandChan <- command{kind: cmdAudio}
+					commandChan <- cmdAudio{}
 				case "subtitle-track":
-					commandChan <- command{kind: cmdSubtitle}
+					commandChan <- cmdSubtitle{}
 				}
 			case "fullscreen":
-				commandChan <- command{kind: cmdFullscreen}
+				commandChan <- cmdFullscreen{}
 			case "volume":
 				val := r.FormValue("val")
-				off := 0
-				var vv volumeVal
+				var mode, off int
 				percent := false
 				if len(val) > 0 && val[len(val)-1] == '%' {
 					val = val[:len(val)-1]
@@ -927,27 +913,24 @@ func startWebServer(commandChan chan<- command, password, port string) {
 					case '+', '-', ' ':
 						off = 1
 					default:
-						vv.mode = 1
+						mode = 1
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
 						if percent {
 							i = i * 320 / 100
 						}
 						if val[0] == '-' {
-							vv.val = -i
-						} else {
-							vv.val = i
+							i = -i
 						}
-						commandChan <- command{kind: cmdVolume, input: vv}
+						commandChan <- cmdVolume{val: i, mode: mode}
 					}
 				}
 			case "seek":
 				val := r.FormValue("val")
-				off := 0
-				var sv seekVal
+				var mode, off int
 				if len(val) > 0 && val[len(val)-1] == '%' {
 					val = val[:len(val)-1]
-					sv.mode = 1
+					mode = 1
 				}
 				if len(val) > 0 &&
 					(val[len(val)-1] == 's' || val[len(val)-1] == 'S') {
@@ -958,17 +941,15 @@ func startWebServer(commandChan chan<- command, password, port string) {
 					case '+', '-', ' ':
 						off = 1
 					default:
-						if sv.mode == 0 {
-							sv.mode = 2
+						if mode == 0 {
+							mode = 2
 						}
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
 						if val[0] == '-' {
-							sv.val = -i
-						} else {
-							sv.val = i
+							i = -i
 						}
-						commandChan <- command{kind: cmdSeek, input: sv}
+						commandChan <- cmdSeek{val: i, mode: mode}
 					}
 				}
 			default:
@@ -990,14 +971,14 @@ func startWebServer(commandChan chan<- command, password, port string) {
 	}
 }
 
+// main
+
 func trimTrailingSpace(s string) string {
 	for len(s) > 0 && s[len(s)-1] == ' ' {
 		s = s[:len(s)-1]
 	}
 	return s
 }
-
-// main
 
 func main() {
 	flags := processFlags()
@@ -1064,6 +1045,6 @@ in the file ~/.mplayer/mplayer-rc.
 	// start mplayer, select loop and web server
 	in, outChan := launchMPlayer(flags)
 	commandChan := startSelectLoop(in, outChan)
-	commandChan <- command{kind: cmdPlay, input: -1} // initial play cmd
+	commandChan <- cmdPlay{id: -1} // initial play cmd
 	startWebServer(commandChan, password, port)
 }
