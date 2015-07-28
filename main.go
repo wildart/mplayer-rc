@@ -387,6 +387,36 @@ func escapeTrack(track string) string {
 	return track
 }
 
+// getProp gets a property value from mplayer. It also handles the
+// pseudo-property, "state".
+func getProp(in io.Writer, outChan <-chan string, prop string) string {
+	if prop == "state" {
+		// first deal with the pseudo-property, "state"
+		trackname := getProp(in, outChan, "filename")
+		if trackname == "ANS_ERROR=PROPERTY_UNAVAILABLE" {
+			return "stopped"
+		}
+		if getProp(in, outChan, "pause") == "yes" {
+			return "paused"
+		}
+		return "playing"
+	}
+	// now deal with real properties.
+	io.WriteString(in, "pausing_keep_force get_property "+prop+"\n")
+	var ans string
+	for line := range outChan {
+		if strings.HasPrefix(line, "ANS_ERROR=") {
+			ans = line
+			break
+		}
+		if strings.HasPrefix(line, "ANS_"+prop+"=") {
+			ans = line[len("ANS_"+prop+"="):]
+			break
+		}
+	}
+	return ans
+}
+
 // "select loop" commands and their associated command functions.
 // each cmdXXX has a corresponding funcXXX.
 
@@ -411,10 +441,6 @@ type cmdVolume struct {
 type cmdSeek struct {
 	val  int // time in seconds (can be positive or negative value)
 	mode int // 0 relative, 1 percent, 2 absolute
-}
-type cmdGetProp struct {
-	prop      string
-	replyChan chan<- string
 }
 type cmdGetPlaylistXML struct {
 	replyChan chan<- string
@@ -499,7 +525,7 @@ func funcNext(in io.Writer, outChan <-chan string) {
 			playpos = shufToPos[shufpos]
 			funcPlay(in, outChan, -1)
 		} else {
-			if !stopped && funcGetProp(in, outChan, "state") == "stopped" {
+			if !stopped && getProp(in, outChan, "state") == "stopped" {
 				stopped = true
 				playpos = 0
 			}
@@ -535,7 +561,7 @@ func funcPause(in io.Writer, outChan <-chan string) {
 
 func funcStop(in io.Writer, outChan <-chan string) {
 	if !stopped {
-		if funcGetProp(in, outChan, "state") == "paused" {
+		if getProp(in, outChan, "state") == "paused" {
 			funcPause(in, outChan) // un-pause before stop
 		}
 		io.WriteString(in, "stop\n")
@@ -545,7 +571,7 @@ func funcStop(in io.Writer, outChan <-chan string) {
 		for {
 			select {
 			case <-ticker.C:
-				if funcGetProp(in, outChan, "state") == "stopped" {
+				if getProp(in, outChan, "state") == "stopped" {
 					ticker.Stop()
 					stopped = true
 					return
@@ -605,7 +631,7 @@ func funcAspect(in io.Writer, outChan <-chan string) {
 		funcSeek(in, +10, 0)
 	} else {
 		if f, err := strconv.ParseFloat(
-			funcGetProp(in, outChan, "aspect"), 64); err == nil {
+			getProp(in, outChan, "aspect"), 64); err == nil {
 			// flip between 16:9 and 4:3
 			if f < 1.5555 {
 				io.WriteString(in, "pausing_keep_force switch_ratio 1.7777\n")
@@ -647,36 +673,6 @@ func funcSeek(in io.Writer, val, mode int) {
 	io.WriteString(in,
 		"pausing_keep_force seek "+
 			strconv.Itoa(val)+" "+strconv.Itoa(mode)+"\n")
-}
-
-// funcGetProp gets a property value. It also handles the
-// pseudo-property, "state".
-func funcGetProp(in io.Writer, outChan <-chan string, prop string) string {
-	if prop == "state" {
-		// first deal with the pseudo-property, "state"
-		trackname := funcGetProp(in, outChan, "filename")
-		if trackname == "ANS_ERROR=PROPERTY_UNAVAILABLE" {
-			return "stopped"
-		}
-		if funcGetProp(in, outChan, "pause") == "yes" {
-			return "paused"
-		}
-		return "playing"
-	}
-	// now deal with real properties.
-	io.WriteString(in, "pausing_keep_force get_property "+prop+"\n")
-	var ans string
-	for line := range outChan {
-		if strings.HasPrefix(line, "ANS_ERROR=") {
-			ans = line
-			break
-		}
-		if strings.HasPrefix(line, "ANS_"+prop+"=") {
-			ans = line[len("ANS_"+prop+"="):]
-			break
-		}
-	}
-	return ans
 }
 
 // playlist.xml
@@ -767,18 +763,18 @@ var statusTmpl = template.Must(template.New("status").Parse(statusTmplTxt))
 // funcGetStatusXML constructs status.xml.
 func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	data := &statusTmplData{}
-	getProp := func(prop string) string {
-		return funcGetProp(in, outChan, prop)
+	get := func(prop string) string {
+		return getProp(in, outChan, prop)
 	}
 	getFloat := func(prop string) float64 {
-		if f, err := strconv.ParseFloat(getProp(prop), 64); err == nil {
+		if f, err := strconv.ParseFloat(get(prop), 64); err == nil {
 			return f
 		} else {
 			return 0
 		}
 	}
 	getBool := func(prop string) bool {
-		if getProp(prop) == "yes" {
+		if get(prop) == "yes" {
 			return true
 		} else {
 			return false
@@ -790,9 +786,9 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	data.Random = shuffle
 	data.Length = int(getFloat("length"))
 	data.Repeat = repeat
-	data.State = getProp("state")
+	data.State = get("state")
 	data.Time = int(getFloat("time_pos"))
-	filename := getProp("filename")
+	filename := get("filename")
 	if filename != "ANS_ERROR=PROPERTY_UNAVAILABLE" {
 		data.Title = filename
 		data.Filename = filename
@@ -858,8 +854,6 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 					funcVolume(in, cmd.val, cmd.mode)
 				case cmdSeek:
 					funcSeek(in, cmd.val, cmd.mode)
-				case cmdGetProp:
-					cmd.replyChan <- funcGetProp(in, outChan, cmd.prop)
 				case cmdGetPlaylistXML:
 					cmd.replyChan <- funcGetPlaylistXML()
 				case cmdGetStatusXML:
@@ -868,7 +862,7 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 			case <-outChan:
 				// discard unused output from mplayer
 			case <-ticker.C:
-				if !stopped && funcGetProp(in, outChan, "state") == "stopped" {
+				if !stopped && getProp(in, outChan, "state") == "stopped" {
 					funcNext(in, outChan)
 				}
 			}
