@@ -649,11 +649,11 @@ func funcGetProp(in io.Writer, outChan <-chan string, prop string) string {
 
 // startSelectLoop returns a command channel whose purpose is to
 // serialize the execution of commands sent to mplayer. In a goroutine
-// it uses select to wait on either a command over the command channel
-// or a ticker firing which causes it to check whether the current track
-// has stopped playing and act accordingly. It also sets up a channel
-// to receive SIGCHILDs from mplayer and ensures the program exits
-// when receiving one.
+// it uses select to wait on either a command over the command
+// channel, output from mplayer (which is discarded) or a ticker
+// firing (which causes it to check whether the current track has
+// stopped playing). It also sets up a channel to receive SIGCHILDs
+// from mplayer and ensures the program exits when receiving one.
 func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 	commandChan := make(chan interface{})
 	sigChan := make(chan os.Signal, 1)
@@ -699,6 +699,8 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 				case cmdGetProp:
 					cmd.replyChan <- funcGetProp(in, outChan, cmd.prop)
 				}
+			case <-outChan:
+				// discard unused output from mplayer
 			case <-ticker.C:
 				if !stopped {
 					if funcGetProp(in, outChan, "state") == "stopped" {
