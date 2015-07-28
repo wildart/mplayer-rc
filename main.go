@@ -416,6 +416,9 @@ type cmdGetProp struct {
 	prop      string
 	replyChan chan<- string
 }
+type cmdGetPlaylistXML struct {
+	replyChan chan<- string
+}
 
 // funcPlay plays the track given by id or plays the current playlist
 // entry if id is invalid. By convention -1 is the invalid id used to
@@ -673,6 +676,52 @@ func funcGetProp(in io.Writer, outChan <-chan string, prop string) string {
 	return ans
 }
 
+// playlist.xml
+
+const playlistTmplTxt = `
+<node ro="rw" name="Undefined" id="1">
+<node ro="ro" name="Playlist" id="2">
+{{range .}}
+<leaf duration="-1" ro="rw" name="{{.Name}}"
+ id="{{.Id}}" {{if .Current}}current="current"{{end}}></leaf>
+{{end}}
+</node>
+<node ro="ro" name="Media Library" id="3"></node>
+</node>
+`
+
+var playlistTmpl = template.Must(
+	template.New("playlist").Parse(playlistTmplTxt))
+
+// funcGetPlaylistXML constructs playlist.xml.
+func funcGetPlaylistXML() string {
+	data := []struct {
+		Name    string
+		Id      int
+		Current bool
+	}{}
+	for i := range playlist {
+		id := playlist[shufToPos[i]]
+		name := filepath.Base(idTrackMap[id])
+		var current bool
+		if id == playlist[playpos] {
+			current = true
+		}
+		data = append(data, struct {
+			Name    string
+			Id      int
+			Current bool
+		}{Name: name, Id: id, Current: current})
+	}
+	buf := new(bytes.Buffer)
+	buf.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`)
+	err := playlistTmpl.Execute(buf, data)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return buf.String()
+}
+
 // startSelectLoop returns a command channel whose purpose is to
 // serialize the execution of commands sent to mplayer. In a goroutine
 // it uses select to wait on either a command over the command
@@ -724,6 +773,8 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 					funcSeek(in, cmd.val, cmd.mode)
 				case cmdGetProp:
 					cmd.replyChan <- funcGetProp(in, outChan, cmd.prop)
+				case cmdGetPlaylistXML:
+					cmd.replyChan <- funcGetPlaylistXML()
 				}
 			case <-outChan:
 				// discard unused output from mplayer
@@ -735,52 +786,6 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 		}
 	}()
 	return commandChan
-}
-
-// playlist.xml
-
-const playlistTmplTxt = `
-<node ro="rw" name="Undefined" id="1">
-<node ro="ro" name="Playlist" id="2">
-{{range .}}
-<leaf duration="-1" ro="rw" name="{{.Name}}"
- id="{{.Id}}" {{if .Current}}current="current"{{end}}></leaf>
-{{end}}
-</node>
-<node ro="ro" name="Media Library" id="3"></node>
-</node>
-`
-
-var playlistTmpl = template.Must(
-	template.New("playlist").Parse(playlistTmplTxt))
-
-// playlistXML constructs playlist.xml.
-func playlistXML() string {
-	data := []struct {
-		Name    string
-		Id      int
-		Current bool
-	}{}
-	for i := range playlist {
-		id := playlist[shufToPos[i]]
-		name := filepath.Base(idTrackMap[id])
-		var current bool
-		if id == playlist[playpos] {
-			current = true
-		}
-		data = append(data, struct {
-			Name    string
-			Id      int
-			Current bool
-		}{Name: name, Id: id, Current: current})
-	}
-	buf := new(bytes.Buffer)
-	buf.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`)
-	err := playlistTmpl.Execute(buf, data)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return buf.String()
 }
 
 // status.xml
@@ -990,7 +995,9 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				return
 			}
 			// output playlist.xml
-			io.WriteString(w, playlistXML())
+			replyChan := make(chan string)
+			commandChan <- cmdGetPlaylistXML{replyChan: replyChan}
+			io.WriteString(w, <-replyChan)
 		})
 	if http.ListenAndServe(":"+port, nil) != nil {
 		log.Fatal(errors.New("failed to start http server"))
