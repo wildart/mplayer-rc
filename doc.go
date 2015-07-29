@@ -1,7 +1,7 @@
 // This file was automatically generated using Genman.
 // Do not edit.
 
-// MPlayer-RC is an MPlayer wrapper enabling remote control from a VLC client.
+// MPlayer-RC is an MPlayer wrapper enabling remote control from a VLC remote.
 // 
 // Synopsis
 // 
@@ -12,9 +12,10 @@
 // Description
 // 
 // MPlayer-RC enables remote control of the MPlayer and MPlayer2 command
-// line media players from a VLC client. It is designed to work
-// specifically with the Android application Android-VLC-Remote which can
-// be obtained from F-Droid:
+// line media players from a VLC remote (i.e. an application written to
+// use VLC's HTTP control interface). It is designed to work specifically
+// with the Android application Android-VLC-Remote which can be obtained
+// from F-Droid:
 // 
 //     https://f-droid.org/repository/browse/?fdid=org.peterbaldwin.client.android.vlcremote
 // 
@@ -22,10 +23,10 @@
 // 
 //     https://code.google.com/p/android-vlc-remote
 // 
-// Other VLC clients may work but are not tested. VLC itself is not
-// required since MPlayer-RC acts as a translator, forwarding VLC
-// commands received from the client to MPlayer and returning responses
-// back.
+// Other applications speaking the VLC HTTP protocol may work but are not
+// tested. VLC itself is not required since MPlayer-RC acts as a
+// translator, forwarding VLC HTTP commands received to MPlayer and
+// returning responses back.
 // 
 // Invoke MPlayer-RC in the same way you would invoke MPlayer. For
 // example:

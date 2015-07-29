@@ -1,6 +1,6 @@
 # MPlayer-RC
 
-MPlayer-RC is an MPlayer wrapper enabling remote control from a VLC client.
+MPlayer-RC is an MPlayer wrapper enabling remote control from a VLC remote.
 
 Documentation at <https://godoc.org/xi2.org/x/mplayer-rc>.
 
