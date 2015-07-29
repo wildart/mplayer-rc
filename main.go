@@ -314,11 +314,12 @@ var (
 	// is for track looping. They are never both true at once.
 	loop   bool
 	repeat bool
-	// the stopped state. We need this since mplayer can briefly
-	// transition into stopped state inbetween tracks when we are not
-	// really stopped.
+	// the stopped state. mplayer can briefly transition into
+	// "stopped" state inbetween tracks when we are not really
+	// stopped, so this variable allows us to keep a true idea of
+	// whether mplayer is stopped or not.
 	stopped bool
-	// whether we are using alternate actions
+	// whether we remap some VLC commands to perform alternate actions
 	remapCommands bool
 )
 
@@ -505,9 +506,8 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 // funcNext will do nothing if the playlist is empty.
 //
 // If it is at the end of the playlist and loop is false, then if
-// funcNext has been called as a result of a track finishing then it
-// will set playpos to 0 and stopped to true, otherwise it will do
-// nothing.
+// funcNext has been called as a result of a track finishing it will
+// set playpos to 0 and stopped to true, otherwise it will do nothing.
 func funcNext(in io.Writer, outChan <-chan string) {
 	if len(playlist) == 0 {
 		return
@@ -593,8 +593,8 @@ func funcShuffle() {
 		return
 	}
 	shuffle = true
-	// the set of positions to be shuffled. Position zero is not
-	// included since it will be used for the current track.
+	// the set of shuffled positions. Position zero is not included
+	// since the current track will be shuffled to position zero
 	shufSet := make([]int, len(playlist)-1)
 	for i := range shufSet {
 		shufSet[i] = i + 1
@@ -810,7 +810,11 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 // it uses select to wait on either a command over the command
 // channel, output from mplayer (which is discarded) or a ticker
 // firing (which causes it to check whether the current track has
-// stopped playing). It also sets up a channel to receive SIGCHILDs
+// stopped playing). All interactions with MPlayer using the funcXXX
+// functions or manipulations of global state variables are performed
+// from the select loop goroutine, and never from HTTP handlers.
+//
+// startSelectLoop also sets up a channel to receive SIGCHILDs
 // from mplayer and ensures the program exits when receiving one.
 func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 	commandChan := make(chan interface{})
