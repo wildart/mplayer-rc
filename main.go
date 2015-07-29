@@ -943,8 +943,10 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				if len(val) > 0 {
 					switch val[0] {
 					case '+', '-', ' ':
+						// relative mode (mode == 0)
 						off = 1
 					default:
+						// absolute mode
 						mode = 1
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
@@ -961,6 +963,7 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				val := r.FormValue("val")
 				var mode, off int
 				if len(val) > 0 && val[len(val)-1] == '%' {
+					// percent mode
 					val = val[:len(val)-1]
 					mode = 1
 				}
@@ -971,9 +974,11 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				if len(val) > 0 {
 					switch val[0] {
 					case '+', '-', ' ':
+						// relative mode (mode == 0)
 						off = 1
 					default:
-						if mode == 0 {
+						if mode != 1 {
+							// absolute mode
 							mode = 2
 						}
 					}
