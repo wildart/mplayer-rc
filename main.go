@@ -942,6 +942,7 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				}
 				if len(val) > 0 {
 					switch val[0] {
+					// note: we get ' ' when + is not URL-encoded
 					case '+', '-', ' ':
 						// relative mode (mode == 0)
 						off = 1
@@ -973,6 +974,7 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				}
 				if len(val) > 0 {
 					switch val[0] {
+					// note: we get ' ' when + is not URL-encoded
 					case '+', '-', ' ':
 						// relative mode (mode == 0)
 						off = 1
