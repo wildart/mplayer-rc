@@ -90,13 +90,13 @@ var (
 	flagMPlayerUsage  bool
 )
 
-// isParameterFlag returns true if flag is an MPlayer flag requiring a
+// needsParameter returns true if flag is an MPlayer flag requiring a
 // parameter, and that parameter is not provided following an "=".
 //
 // Examples:
 //   -vf => true
 //   --vf=pp => false
-func isParameterFlag(flag string) bool {
+func needsParameter(flag string) bool {
 	out, _ := exec.Command("mplayer", flag).CombinedOutput()
 	scanner := bufio.NewScanner(bytes.NewBuffer(out))
 	if !scanner.Scan() {
@@ -263,7 +263,7 @@ func processFlags() []string {
 			}
 			continue
 		}
-		if i < n-1 && isParameterFlag(a) {
+		if i < n-1 && needsParameter(a) {
 			flags = append(flags, a, os.Args[i+1])
 			i++
 			continue
