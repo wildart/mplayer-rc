@@ -113,8 +113,8 @@ var backendMPV = backendStrings{
 	propVolume:     "volume",
 }
 
-// init sets a few strings in backendMPV that can only be determined
-// by probing the exact version of MPV that is installed.
+// init sets a few strings in backendMPV that vary by MPV version. We
+// query the MPV that is installed to determine which to use.
 func init() {
 	printText := "print-text"
 	length := "duration"
