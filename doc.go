@@ -41,8 +41,8 @@
 // Android device.
 // 
 // Android-VLC-Remote will prompt you for a password which you need to
-// inform MPlayer-RC about beforehand. For this you can use the special
-// command line flag -password or put the line
+// inform MPlayer-RC about beforehand. For this you can use the command
+// line flag -password or put the line
 // 
 //     password=...
 // 
