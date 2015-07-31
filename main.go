@@ -87,7 +87,6 @@ var (
 	flagUsage bool
 
 	flagVersion       bool
-	flagBackendUsage  bool
 	flagPassword      string
 	flagPort          string
 	flagRemapCommands bool
@@ -223,9 +222,6 @@ func processFlags(args []string) []string {
 		fmt.Fprintf(os.Stderr, "  -backend backend\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tset backend as the backend player (default mplayer)\n")
-		fmt.Fprintf(os.Stderr, "  -backend-help\n")
-		fmt.Fprintf(os.Stderr,
-			"    \tdisplay the backend player usage message\n")
 		fmt.Fprintf(os.Stderr, "  -password pass\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse pass as the Android-VLC-Remote password\n")
@@ -241,10 +237,6 @@ func processFlags(args []string) []string {
 			fmt.Fprintf(os.Stderr, "   MPlayer-RC version %s\n\n", version)
 		}
 		fmt.Fprintf(os.Stderr, license)
-	}
-	printBackendUsage := func() {
-		out, _ := exec.Command(backend.binary, "--help").CombinedOutput()
-		fmt.Fprint(os.Stderr, string(out))
 	}
 
 	// process flags
@@ -284,10 +276,6 @@ func processFlags(args []string) []string {
 		}
 		if a == "-V" {
 			flagVersion = true
-			break
-		}
-		if a == "-backend-help" {
-			flagBackendUsage = true
 			break
 		}
 		isPlaylist := false
@@ -347,10 +335,6 @@ func processFlags(args []string) []string {
 	// handle mplayer-rc flags
 	if flagVersion {
 		printVersion()
-		os.Exit(1)
-	}
-	if flagBackendUsage {
-		printBackendUsage()
 		os.Exit(1)
 	}
 	if flagUsage || len(tracks) == 0 {

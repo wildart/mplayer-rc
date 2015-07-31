@@ -64,8 +64,6 @@
 //   -V    show version, license and further information
 //   -backend backend
 //         set backend as the backend player (default mplayer)
-//   -backend-help
-//         display the backend player usage message
 //   -password pass
 //         use pass as the Android-VLC-Remote password
 //   -port port
