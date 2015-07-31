@@ -35,16 +35,16 @@ device.
 
 Android-VLC-Remote will prompt you for a password which you need to
 inform MPlayer-RC about beforehand. For this you can use the special
-command line flag -rc-password or put the line
+command line flag -password or put the line
 
-    rc-password=...
+    password=...
 
 in the file ~/.mplayer-rc. Similarly, you can also use
 
-    rc-port=...
+    port=...
 
 to change the default listening port (8080) instead of using the
--rc-port flag.
+-port flag.
 
 {{.Options}}
 

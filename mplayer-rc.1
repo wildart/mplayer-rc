@@ -54,12 +54,12 @@
 
 \&Android-VLC-Remote will prompt you for a password which you need to
 \&inform MPlayer-RC about beforehand. For this you can use the special
-\&command line flag \-rc-password or put the line
+\&command line flag \-password or put the line
 
 .ft CW
 .nf
 .RS 4
-\&rc-password=...
+\&password=...
 .RE
 .fi
 .ft
@@ -69,30 +69,30 @@
 .ft CW
 .nf
 .RS 4
-\&rc-port=...
+\&port=...
 .RE
 .fi
 .ft
 
 \&to change the default listening port (8080) instead of using the
-\&\-rc-port flag.
+\&\-port flag.
 
 .SH OPTIONS
 .TP 8
 .B \-V
 \&show version, license and further information
 .TP 8
-.B \-remap\-commands
-\&use alternate actions for some VLC commands
-.TP 8
-.BI \-rc\-password " pass"
-\&use pass as the Android-VLC-Remote password
-.TP 8
-.BI \-rc\-port " port"
-\&use port as the listening port for VLC commands (default 8080)
-.TP 8
 .B \-mplayer\-help
 \&display the MPlayer usage message
+.TP 8
+.BI \-password " pass"
+\&use pass as the Android-VLC-Remote password
+.TP 8
+.BI \-port " port"
+\&use port as the listening port for VLC commands (default 8080)
+.TP 8
+.B \-remap\-commands
+\&use alternate actions for some VLC commands
 
 .SH FILES
 \&~/.mplayer-rc \- configuration file

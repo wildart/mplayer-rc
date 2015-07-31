@@ -84,16 +84,16 @@ var (
 	flagUsage bool
 
 	flagVersion       bool
-	flagRemapCommands bool
+	flagMPlayerUsage  bool
 	flagPassword      string
 	flagPort          string
-	flagMPlayerUsage  bool
+	flagRemapCommands bool
 )
 
 var (
-	confRemapCommands bool
 	confPassword      string
 	confPort          string = "8080"
+	confRemapCommands bool
 )
 
 func trimTrailingSpace(s string) string {
@@ -122,12 +122,12 @@ func processConfig() {
 					confRemapCommands = true
 				}
 			}
-			if strings.HasPrefix(scanner.Text(), "rc-password=") {
-				p := scanner.Text()[len("rc-password="):]
+			if strings.HasPrefix(scanner.Text(), "password=") {
+				p := scanner.Text()[len("password="):]
 				confPassword = trimTrailingSpace(p)
 			}
-			if strings.HasPrefix(scanner.Text(), "rc-port=") {
-				p := scanner.Text()[len("rc-port="):]
+			if strings.HasPrefix(scanner.Text(), "port=") {
+				p := scanner.Text()[len("port="):]
 				confPort = trimTrailingSpace(p)
 			}
 		}
@@ -172,18 +172,18 @@ func processFlags() []string {
 		fmt.Fprintf(os.Stderr, "  -V\t")
 		fmt.Fprintf(os.Stderr,
 			"show version, license and further information\n")
-		fmt.Fprintf(os.Stderr, "  -remap-commands\n")
-		fmt.Fprintf(os.Stderr,
-			"    \tuse alternate actions for some VLC commands\n")
-		fmt.Fprintf(os.Stderr, "  -rc-password pass\n")
-		fmt.Fprintf(os.Stderr,
-			"    \tuse pass as the Android-VLC-Remote password\n")
-		fmt.Fprintf(os.Stderr, "  -rc-port port\n")
-		fmt.Fprintf(os.Stderr,
-			"    \tuse port as the listening port for VLC commands (default 8080)\n")
 		fmt.Fprintf(os.Stderr, "  -mplayer-help\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tdisplay the MPlayer usage message\n")
+		fmt.Fprintf(os.Stderr, "  -password pass\n")
+		fmt.Fprintf(os.Stderr,
+			"    \tuse pass as the Android-VLC-Remote password\n")
+		fmt.Fprintf(os.Stderr, "  -port port\n")
+		fmt.Fprintf(os.Stderr,
+			"    \tuse port as the listening port for VLC commands (default 8080)\n")
+		fmt.Fprintf(os.Stderr, "  -remap-commands\n")
+		fmt.Fprintf(os.Stderr,
+			"    \tuse alternate actions for some VLC commands\n")
 	}
 	printVersion := func() {
 		if version != "" {
@@ -213,12 +213,12 @@ func processFlags() []string {
 			flagRemapCommands = true
 			continue
 		}
-		if i < n-1 && a == "-rc-password" {
+		if i < n-1 && a == "-password" {
 			flagPassword = os.Args[i+1]
 			i++
 			continue
 		}
-		if i < n-1 && a == "-rc-port" {
+		if i < n-1 && a == "-port" {
 			flagPort = os.Args[i+1]
 			i++
 			continue
@@ -1053,9 +1053,9 @@ func main() {
 		fmt.Fprint(os.Stderr,
 			`MPlayer-RC needs to have a password which is used to authorize
 Android-VLC-Remote. You can specify the password using the command
-line flag -rc-password=<pass> or by putting the line
+line flag -password=<pass> or by putting the line
 
-  rc-password=<pass>
+  password=<pass>
 
 in the file ~/.mplayer-rc.
 `)
