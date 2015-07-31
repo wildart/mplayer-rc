@@ -90,6 +90,50 @@ var (
 	flagMPlayerUsage  bool
 )
 
+var (
+	confRemapCommands bool
+	confPassword      string
+	confPort          string = "8080"
+)
+
+func trimTrailingSpace(s string) string {
+	for len(s) > 0 && s[len(s)-1] == ' ' {
+		s = s[:len(s)-1]
+	}
+	return s
+}
+
+// processConfig parses the config file and sets the conf* variables
+func processConfig() {
+	home := os.Getenv("HOME")
+	if runtime.GOOS == "windows" {
+		home = os.Getenv("USERPROFILE")
+	}
+	b, err := ioutil.ReadFile(
+		filepath.Join(home, ".mplayer-rc"))
+	if err == nil {
+		scanner := bufio.NewScanner(bytes.NewBuffer(b))
+		for scanner.Scan() {
+			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
+				p := scanner.Text()[len("remap-commands="):]
+				p = strings.ToLower(trimTrailingSpace(p))
+				switch p {
+				case "yes", "1", "true":
+					confRemapCommands = true
+				}
+			}
+			if strings.HasPrefix(scanner.Text(), "rc-password=") {
+				p := scanner.Text()[len("rc-password="):]
+				confPassword = trimTrailingSpace(p)
+			}
+			if strings.HasPrefix(scanner.Text(), "rc-port=") {
+				p := scanner.Text()[len("rc-port="):]
+				confPort = trimTrailingSpace(p)
+			}
+		}
+	}
+}
+
 // needsParameter returns true if flag is an MPlayer flag requiring a
 // parameter.
 //
@@ -989,46 +1033,12 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 
 // main
 
-func trimTrailingSpace(s string) string {
-	for len(s) > 0 && s[len(s)-1] == ' ' {
-		s = s[:len(s)-1]
-	}
-	return s
-}
-
 func main() {
 	flags := processFlags()
-	// set defaults for password/port
-	password, port := "", "8080"
-	// try to set remapCommands/password/port from config file
-	home := os.Getenv("HOME")
-	if runtime.GOOS == "windows" {
-		home = os.Getenv("USERPROFILE")
-	}
-	b, err := ioutil.ReadFile(
-		filepath.Join(home, ".mplayer-rc"))
-	if err == nil {
-		scanner := bufio.NewScanner(bytes.NewBuffer(b))
-		for scanner.Scan() {
-			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
-				p := scanner.Text()[len("remap-commands="):]
-				p = strings.ToLower(trimTrailingSpace(p))
-				switch p {
-				case "yes", "1", "true":
-					remapCommands = true
-				}
-			}
-			if strings.HasPrefix(scanner.Text(), "rc-password=") {
-				p := scanner.Text()[len("rc-password="):]
-				password = trimTrailingSpace(p)
-			}
-			if strings.HasPrefix(scanner.Text(), "rc-port=") {
-				p := scanner.Text()[len("rc-port="):]
-				port = trimTrailingSpace(p)
-			}
-		}
-	}
-	// try to set them from flags
+	processConfig()
+	remapCommands = confRemapCommands
+	password, port := confPassword, confPort
+	// override with flags if appropriate
 	if flagRemapCommands == true {
 		remapCommands = true
 	}
