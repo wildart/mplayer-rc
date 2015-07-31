@@ -91,11 +91,11 @@ var (
 )
 
 // needsParameter returns true if flag is an MPlayer flag requiring a
-// parameter, and that parameter is not provided following an "=".
+// parameter.
 //
 // Examples:
 //   -vf => true
-//   --vf=pp => false
+//   -fs => false
 func needsParameter(flag string) bool {
 	out, _ := exec.Command("mplayer", flag).CombinedOutput()
 	scanner := bufio.NewScanner(bytes.NewBuffer(out))
@@ -120,7 +120,7 @@ func needsParameter(flag string) bool {
 //
 // The mplayer-rc specific flags are handled as appropriate.
 //
-// The mplayer flags --playlist/-playlist and --shuffle/-shuffle are
+// The mplayer flags -playlist and -shuffle are
 // handled by mplayer-rc and are not passed to mplayer.
 func processFlags() []string {
 	n := len(os.Args)
@@ -170,38 +170,21 @@ func processFlags() []string {
 			tracks = append(tracks, a)
 			continue
 		}
-		if a == "--remap-commands" || a == "-remap-commands" {
+		if a == "-remap-commands" {
 			flagRemapCommands = true
 			continue
 		}
-		if strings.HasPrefix(a, "--remap-commands=") {
-			p := a[len("--remap-commands="):]
-			switch p {
-			case "1", "t", "T", "true", "TRUE", "True",
-				"y", "Y", "yes", "YES", "Yes":
-				flagRemapCommands = true
-			}
-			continue
-		}
-		if strings.HasPrefix(a, "--rc-password=") {
-			flagPassword = a[len("--rc-password="):]
-			continue
-		}
-		if i < n-1 && (a == "--rc-password" || a == "-rc-password") {
+		if i < n-1 && a == "-rc-password" {
 			flagPassword = os.Args[i+1]
 			i++
 			continue
 		}
-		if strings.HasPrefix(a, "--rc-port=") {
-			flagPort = a[len("--rc-port="):]
-			continue
-		}
-		if i < n-1 && (a == "--rc-port" || a == "-rc-port") {
+		if i < n-1 && a == "-rc-port" {
 			flagPort = os.Args[i+1]
 			i++
 			continue
 		}
-		if a == "--shuffle" || a == "-shuffle" {
+		if a == "-shuffle" {
 			doShuffle = true
 			continue
 		}
@@ -213,17 +196,13 @@ func processFlags() []string {
 			flagVersion = true
 			break
 		}
-		if a == "--mplayer-help" || a == "-mplayer-help" {
+		if a == "-mplayer-help" {
 			flagMPlayerUsage = true
 			break
 		}
 		isPlaylist := false
 		playlist := ""
-		if strings.HasPrefix(a, "--playlist=") {
-			playlist = a[len("--playlist="):]
-			isPlaylist = true
-		}
-		if i < n-1 && (a == "--playlist" || a == "-playlist") {
+		if i < n-1 && a == "-playlist" {
 			playlist = os.Args[i+1]
 			isPlaylist = true
 			i++
@@ -1037,18 +1016,11 @@ func main() {
 	if err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(b))
 		for scanner.Scan() {
-			if strings.HasPrefix(scanner.Text(), "remap-commands") {
-				p := trimTrailingSpace(scanner.Text())
-				if p == "remap-commands" {
-					remapCommands = true
-				}
-			}
 			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
 				p := scanner.Text()[len("remap-commands="):]
-				p = trimTrailingSpace(p)
+				p = strings.ToLower(trimTrailingSpace(p))
 				switch p {
-				case "1", "t", "T", "true", "TRUE", "True",
-					"y", "Y", "yes", "YES", "Yes":
+				case "yes", "1", "true":
 					remapCommands = true
 				}
 			}
