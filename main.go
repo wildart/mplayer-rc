@@ -23,6 +23,8 @@
 //
 // mplayer: http://www.mplayerhq.hu/DOCS/tech/slave.txt
 //
+//     mpv: http://mpv.io/manual/master/#command-interface
+//
 //     vlc: https://wiki.videolan.org/VLC_HTTP_requests/
 //          https://wiki.videolan.org/Documentation:Modules/http_intf/
 //          https://raw.githubusercontent.com/videolan/vlc/master/share/lua/http/requests/README.txt
@@ -80,17 +82,20 @@ const license = `   Copyright 2015 The MPlayer-RC Authors. See the AUTHORS file 
    <https://xi2.org/x/mplayer-rc>.
 `
 
+// variables set by flag processing
 var (
 	flagUsage bool
 
 	flagVersion       bool
-	flagMPlayerUsage  bool
+	flagBackendUsage  bool
 	flagPassword      string
 	flagPort          string
 	flagRemapCommands bool
 )
 
+// variables set by config file processing
 var (
+	confBackend       string
 	confPassword      string
 	confPort          string = "8080"
 	confRemapCommands bool
@@ -114,13 +119,9 @@ func processConfig() {
 	if err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(b))
 		for scanner.Scan() {
-			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
-				p := scanner.Text()[len("remap-commands="):]
-				p = strings.ToLower(trimTrailingSpace(p))
-				switch p {
-				case "yes", "1", "true":
-					confRemapCommands = true
-				}
+			if strings.HasPrefix(scanner.Text(), "backend=") {
+				p := scanner.Text()[len("backend="):]
+				confBackend = trimTrailingSpace(p)
 			}
 			if strings.HasPrefix(scanner.Text(), "password=") {
 				p := scanner.Text()[len("password="):]
@@ -130,51 +131,101 @@ func processConfig() {
 				p := scanner.Text()[len("port="):]
 				confPort = trimTrailingSpace(p)
 			}
+			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
+				p := scanner.Text()[len("remap-commands="):]
+				p = strings.ToLower(trimTrailingSpace(p))
+				switch p {
+				case "yes", "1", "true":
+					confRemapCommands = true
+				}
+			}
 		}
 	}
 }
 
-// needsParameter returns true if flag is an MPlayer flag requiring a
+// setBackend sets the backend by considering os.Args[0], the config
+// file and command line flags. It returns the processed os.Args
+func setBackend() []string {
+	args := os.Args
+	// set using args[0]
+	switch strings.ToLower(filepath.Base(args[0])) {
+	case "mpv-rc", "mpv-rc.exe":
+		backend = &backendMPV
+	default:
+		backend = &backendMPlayer
+	}
+	// set using config file
+	switch confBackend {
+	case "mplayer":
+		backend = &backendMPlayer
+	case "mpv":
+		backend = &backendMPV
+	}
+	// set using flags
+	for i := 1; i < len(args)-1; i++ {
+		if args[i] == "--" {
+			break
+		}
+		if args[i] == "-backend" {
+			if args[i+1] == "mplayer" {
+				backend = &backendMPlayer
+				args = append(args[:i], args[i+2:]...)
+				break
+			}
+			if args[i+1] == "mpv" {
+				backend = &backendMPV
+				args = append(args[:i], args[i+2:]...)
+				break
+			}
+		}
+	}
+	return args
+}
+
+// needsParameter returns true if flag is a backend flag requiring a
 // parameter.
 //
 // Examples:
 //   -vf => true
 //   -fs => false
 func needsParameter(flag string) bool {
-	out, _ := exec.Command("mplayer", flag).CombinedOutput()
+	out, _ := exec.Command(backend.binary, flag).CombinedOutput()
 	scanner := bufio.NewScanner(bytes.NewBuffer(out))
 	if !scanner.Scan() {
 		return false
 	}
 	line1 := scanner.Text()
-	if strings.HasPrefix(line1, "Error parsing ") {
+	if strings.HasPrefix(line1, backend.matchNeedsParam) {
 		return true
 	}
 	return false
 }
 
-// processFlags processes os.Args and creates the playlist state from
-// the relevant command line arguments. It returns a list of flags to
-// be passed to mplayer.
+// processFlags processes args received from setBackend and creates
+// the playlist state from the relevant command line arguments. It
+// returns a list of flags to be passed to the backend.
 //
 // The mplayer-rc specific flags are handled as appropriate.
 //
-// The mplayer flags -playlist and -shuffle are
-// handled by mplayer-rc and are not passed to mplayer.
-func processFlags() []string {
-	n := len(os.Args)
+// The flags -playlist and -shuffle are handled by mplayer-rc and are
+// not passed to the backend.
+func processFlags(args []string) []string {
+	n := len(args)
 
 	printUsage := func() {
 		fmt.Fprintf(os.Stderr,
-			"usage: %s [mplayer-rc or mplayer options] [files/URLs]\n",
-			filepath.Base(os.Args[0]))
+			"usage: %s [mplayer-rc or mplayer/mpv options] [files/URLs]\n",
+			filepath.Base(args[0]))
 		// Go 1.5+ package flag compatible format
 		fmt.Fprintf(os.Stderr, "  -V\t")
 		fmt.Fprintf(os.Stderr,
 			"show version, license and further information\n")
-		fmt.Fprintf(os.Stderr, "  -mplayer-help\n")
+		fmt.Fprintf(os.Stderr, "  -backend backend\n")
 		fmt.Fprintf(os.Stderr,
-			"    \tdisplay the MPlayer usage message\n")
+			"    \tset backend as the backend player (default mplayer)\n")
+		fmt.Fprintf(os.Stderr, "  -backend-help\n")
+		fmt.Fprintf(os.Stderr,
+			"    \tdisplay the backend player usage message\n")
 		fmt.Fprintf(os.Stderr, "  -password pass\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse pass as the Android-VLC-Remote password\n")
@@ -191,8 +242,8 @@ func processFlags() []string {
 		}
 		fmt.Fprintf(os.Stderr, license)
 	}
-	printMPlayerUsage := func() {
-		out, _ := exec.Command("mplayer", "--help").CombinedOutput()
+	printBackendUsage := func() {
+		out, _ := exec.Command(backend.binary, "--help").CombinedOutput()
 		fmt.Fprint(os.Stderr, string(out))
 	}
 
@@ -200,9 +251,9 @@ func processFlags() []string {
 	doShuffle := false
 	var flags, tracks []string
 	for i := 1; i < n; i++ {
-		a := os.Args[i]
+		a := args[i]
 		if a == "--" {
-			tracks = append(tracks, os.Args[i+1:]...)
+			tracks = append(tracks, args[i+1:]...)
 			break
 		}
 		if len(a) > 0 && a[0] != '-' {
@@ -214,16 +265,16 @@ func processFlags() []string {
 			continue
 		}
 		if i < n-1 && a == "-password" {
-			flagPassword = os.Args[i+1]
+			flagPassword = args[i+1]
 			i++
 			continue
 		}
 		if i < n-1 && a == "-port" {
-			flagPort = os.Args[i+1]
+			flagPort = args[i+1]
 			i++
 			continue
 		}
-		if a == "-shuffle" {
+		if a == "-shuffle" || a == "--shuffle" {
 			doShuffle = true
 			continue
 		}
@@ -235,14 +286,18 @@ func processFlags() []string {
 			flagVersion = true
 			break
 		}
-		if a == "-mplayer-help" {
-			flagMPlayerUsage = true
+		if a == "-backend-help" {
+			flagBackendUsage = true
 			break
 		}
 		isPlaylist := false
 		playlist := ""
+		if strings.HasPrefix(a, "--playlist=") {
+			playlist = a[len("--playlist="):]
+			isPlaylist = true
+		}
 		if i < n-1 && a == "-playlist" {
-			playlist = os.Args[i+1]
+			playlist = args[i+1]
 			isPlaylist = true
 			i++
 		}
@@ -282,7 +337,7 @@ func processFlags() []string {
 			continue
 		}
 		if i < n-1 && needsParameter(a) {
-			flags = append(flags, a, os.Args[i+1])
+			flags = append(flags, a, args[i+1])
 			i++
 			continue
 		}
@@ -294,8 +349,8 @@ func processFlags() []string {
 		printVersion()
 		os.Exit(1)
 	}
-	if flagMPlayerUsage {
-		printMPlayerUsage()
+	if flagBackendUsage {
+		printBackendUsage()
 		os.Exit(1)
 	}
 	if flagUsage || len(tracks) == 0 {
@@ -332,13 +387,15 @@ var (
 	// is for track looping. They are never both true at once.
 	loop   bool
 	repeat bool
-	// the stopped state. mplayer can briefly transition into
+	// the stopped state. The backend can briefly transition into
 	// "stopped" state inbetween tracks when we are not really
 	// stopped, so this variable allows us to keep a true idea of
-	// whether mplayer is stopped or not.
+	// whether the backend is stopped or not.
 	stopped bool
 	// whether we remap some VLC commands to perform alternate actions
 	remapCommands bool
+	// the backend, set by setBackend
+	backend *backendStrings
 )
 
 // idCounter is incremented on each creation of a playlist id. id
@@ -356,14 +413,13 @@ func addPlaylistEntry(track string) {
 	idCounter++
 }
 
-// launchMPlayer starts up mplayer with the provided flags in slave
-// mode as a background process. It returns mplayer's stdin as an
-// io.Writer and combined stdout/stderr as a <-chan string.
-func launchMPlayer(flags []string) (io.Writer, <-chan string) {
-	flags = append(
-		[]string{"-idle", "-slave", "-quiet", "-noconsolecontrols"},
-		flags...)
-	cmd := exec.Command("mplayer", flags...)
+// launchBackend starts up the backend with the provided flags in
+// slave mode. It returns the backend's stdin as an io.Writer and
+// combined stdout/stderr as a <-chan string.
+func launchBackend(flags []string) (io.Writer, <-chan string) {
+	startFlags := append([]string{}, backend.startFlags...)
+	flags = append(startFlags, flags...)
+	cmd := exec.Command(backend.binary, flags...)
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		log.Fatal(err)
@@ -382,14 +438,16 @@ func launchMPlayer(flags []string) (io.Writer, <-chan string) {
 			outChan <- scanner.Text()
 		}
 	}()
-	// check for command line errors at mplayer startup
+	// write a blank line to force MPV to give some output at startup
+	io.WriteString(in, "\n")
+	// check for command line errors at backend startup
 	for line := range outChan {
-		if strings.HasPrefix(line, "Error ") {
-			// mplayer has failed to parse it's command line or has
+		if strings.HasPrefix(line, backend.matchStartupFail) {
+			// backend has failed to parse it's command line or has
 			// otherwise failed to start
-			log.Fatal(errors.New("mplayer: " + line))
+			log.Fatal(errors.New(backend.binary + ": " + line))
 		}
-		if strings.HasPrefix(line, "MPlayer") {
+		if strings.HasPrefix(line, backend.matchStartupOK) {
 			// all good hopefully...
 			break
 		}
@@ -397,21 +455,21 @@ func launchMPlayer(flags []string) (io.Writer, <-chan string) {
 	return in, outChan
 }
 
-// escapeTrack escapes a file name/url so it is suitable to pass
-// to mplayer with "loadfile"
+// escapeTrack escapes a filename/URL so it is suitable to pass
+// to the backend with backend.cmdLoadfile
 func escapeTrack(track string) string {
 	track = strings.Replace(track, `\`, `\\`, -1)
 	track = strings.Replace(track, `"`, `\"`, -1)
 	return `"` + track + `"`
 }
 
-// getProp gets a property value from mplayer. It also handles the
+// getProp gets a property value from the backend. It also handles the
 // pseudo-property, "state".
 func getProp(in io.Writer, outChan <-chan string, prop string) string {
 	if prop == "state" {
 		// first deal with the pseudo-property, "state"
 		trackname := getProp(in, outChan, "filename")
-		if trackname == "ANS_ERROR=PROPERTY_UNAVAILABLE" {
+		if trackname == "(unavailable)" {
 			return "stopped"
 		}
 		if getProp(in, outChan, "pause") == "yes" {
@@ -420,11 +478,14 @@ func getProp(in io.Writer, outChan <-chan string, prop string) string {
 		return "playing"
 	}
 	// now deal with real properties.
-	io.WriteString(in, "pausing_keep_force get_property "+prop+"\n")
+	_, err := fmt.Fprintf(in, backend.cmdGetProp+"\n", prop, prop)
+	if err != nil {
+		log.Println(err)
+	}
 	var ans string
 	for line := range outChan {
 		if strings.HasPrefix(line, "ANS_ERROR=") {
-			ans = line
+			ans = "(unavailable)"
 			break
 		}
 		if strings.HasPrefix(line, "ANS_"+prop+"=") {
@@ -488,25 +549,29 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 	} else {
 		playpos = idPosMap[id]
 	}
-	// if MPlayer could not play the previous track it will ignore the
-	// next command so, in case this is true, send it an arbitrary
-	// command first.
-	io.WriteString(in, "mute 0\n")
-	io.WriteString(in, "loadfile "+escapeTrack(idTrackMap[id])+"\n")
+	// if backend could not play the previous track it will ignore the
+	// next command sometimes (MPlayer at least does this). In case
+	// this is true, send it a Noop command first.
+	fmt.Fprintf(in, backend.cmdNoop+"\n")
+	fmt.Fprintf(in, backend.cmdLoadfile+"\n", escapeTrack(idTrackMap[id]))
 	var playing bool
 	var playingTrack string
 	for line := range outChan {
-		if strings.HasPrefix(line, "Playing ") && len(line) > len("Playing ") {
-			// len(line)-1 is to account for full stop
-			playingTrack = line[len("Playing ") : len(line)-1]
+		if strings.HasPrefix(line, backend.matchPlayingPrefix) &&
+			strings.HasSuffix(line, backend.matchPlayingSuffix) &&
+			len(line) >= len(backend.matchPlayingPrefix)+
+				len(backend.matchPlayingSuffix) {
+			playingTrack = line[len(backend.matchPlayingPrefix) : len(line)-
+				len(backend.matchPlayingSuffix)]
 			playing = true
 		}
 		if line == "" && playing {
-			log.Println("mplayer: cannot play track: " + playingTrack)
+			log.Println(
+				backend.binary + ": cannot play track: " + playingTrack)
 			funcNext(in, outChan)
 			return
 		}
-		if line == "Starting playback..." {
+		if strings.HasPrefix(line, backend.matchPlayingOK) {
 			// valid track found
 			stopped = false
 			return
@@ -573,7 +638,7 @@ func funcPause(in io.Writer, outChan <-chan string) {
 		funcPlay(in, outChan, -1)
 		return
 	}
-	io.WriteString(in, "pause\n")
+	fmt.Fprintf(in, backend.cmdPause+"\n")
 }
 
 func funcStop(in io.Writer, outChan <-chan string) {
@@ -581,8 +646,8 @@ func funcStop(in io.Writer, outChan <-chan string) {
 		if getProp(in, outChan, "state") == "paused" {
 			funcPause(in, outChan) // un-pause before stop
 		}
-		io.WriteString(in, "stop\n")
-		// wait for mplayer to confirm stop before updating the
+		fmt.Fprintf(in, backend.cmdStop+"\n")
+		// wait for backend to confirm stop before updating the
 		// stopped state
 		ticker := time.NewTicker(250 * time.Millisecond)
 		for {
@@ -648,12 +713,12 @@ func funcAspect(in io.Writer, outChan <-chan string) {
 		funcSeek(in, +10, 0)
 	} else {
 		if f, err := strconv.ParseFloat(
-			getProp(in, outChan, "aspect"), 64); err == nil {
+			getProp(in, outChan, backend.propAspect), 64); err == nil {
 			// flip between 16:9 and 4:3
 			if f < 1.5555 {
-				io.WriteString(in, "pausing_keep_force switch_ratio 1.7777\n")
+				fmt.Fprintf(in, backend.cmdSwitchRatio+"\n", "1.7777")
 			} else {
-				io.WriteString(in, "pausing_keep_force switch_ratio 1.3333\n")
+				fmt.Fprintf(in, backend.cmdSwitchRatio+"\n", "1.3333")
 			}
 		}
 	}
@@ -662,9 +727,9 @@ func funcAspect(in io.Writer, outChan <-chan string) {
 func funcAudio(in io.Writer) {
 	if remapCommands {
 		// repurpose this as OSD toggle
-		io.WriteString(in, "pausing_keep_force osd\n")
+		fmt.Fprintf(in, backend.cmdOSD+"\n")
 	} else {
-		io.WriteString(in, "pausing_keep_force switch_audio\n")
+		fmt.Fprintf(in, backend.cmdSwitchAudio+"\n")
 	}
 }
 func funcSubtitle(in io.Writer) {
@@ -672,24 +737,32 @@ func funcSubtitle(in io.Writer) {
 		// repurpose to rewind by 10 seconds
 		funcSeek(in, -10, 0)
 	} else {
-		io.WriteString(in, "pausing_keep_force sub_select\n")
+		fmt.Fprintf(in, backend.cmdSubSelect+"\n")
 	}
 }
 
 func funcFullscreen(in io.Writer) {
-	io.WriteString(in, "pausing_keep_force vo_fullscreen\n")
+	fmt.Fprintf(in, backend.cmdFullscreen+"\n")
 }
 
 func funcVolume(in io.Writer, val, mode int) {
-	io.WriteString(in,
-		"pausing_keep_force volume "+
-			strconv.Itoa(val)+" "+strconv.Itoa(mode)+"\n")
+	switch mode {
+	case 0: // relative
+		fmt.Fprintf(in, backend.cmdVolume0+"\n", val)
+	case 1: // absolute
+		fmt.Fprintf(in, backend.cmdVolume1+"\n", val)
+	}
 }
 
 func funcSeek(in io.Writer, val, mode int) {
-	io.WriteString(in,
-		"pausing_keep_force seek "+
-			strconv.Itoa(val)+" "+strconv.Itoa(mode)+"\n")
+	switch mode {
+	case 0: // relative
+		fmt.Fprintf(in, backend.cmdSeek0+"\n", val)
+	case 1: // percent
+		fmt.Fprintf(in, backend.cmdSeek1+"\n", val)
+	case 2: // absolute
+		fmt.Fprintf(in, backend.cmdSeek2+"\n", val)
+	}
 }
 
 // playlist.xml
@@ -784,11 +857,14 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 		return getProp(in, outChan, prop)
 	}
 	getFloat := func(prop string) float64 {
-		if f, err := strconv.ParseFloat(get(prop), 64); err == nil {
-			return f
-		} else {
-			return 0
+		// also handles times in HH:MM:SS format
+		var result float64
+		for _, s := range strings.Split(get(prop), ":") {
+			if f, err := strconv.ParseFloat(s, 64); err == nil {
+				result = 60*result + f
+			}
 		}
+		return result
 	}
 	getBool := func(prop string) bool {
 		if get(prop) == "yes" {
@@ -797,16 +873,16 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 			return false
 		}
 	}
-	data.Fullscreen = getBool("fullscreen")
-	data.Volume = int(getFloat("volume")) * 320 / 100
+	data.Fullscreen = getBool(backend.propFullscreen)
+	data.Volume = int(getFloat(backend.propVolume)) * 320 / 100
 	data.Loop = loop
 	data.Random = shuffle
-	data.Length = int(getFloat("length"))
+	data.Length = int(getFloat(backend.propLength))
 	data.Repeat = repeat
 	data.State = get("state")
-	data.Time = int(getFloat("time_pos"))
-	filename := get("filename")
-	if filename != "ANS_ERROR=PROPERTY_UNAVAILABLE" {
+	data.Time = int(getFloat(backend.propTimePos))
+	filename := get(backend.propFilename)
+	if filename != "(unavailable)" {
 		data.Title = filename
 		data.Filename = filename
 	} else {
@@ -823,16 +899,17 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 }
 
 // startSelectLoop returns a command channel whose purpose is to
-// serialize the execution of commands sent to mplayer. In a goroutine
-// it uses select to wait on either a command over the command
-// channel, output from mplayer (which is discarded) or a ticker
-// firing (which causes it to check whether the current track has
-// stopped playing). All interactions with MPlayer using the funcXXX
-// functions or manipulations of global state variables are performed
-// from the select loop goroutine, and never from HTTP handlers.
+// serialize the execution of commands sent to the backend. In a
+// goroutine it uses select to wait on either a command over the
+// command channel, output from the backend (which is discarded) or a
+// ticker firing (which causes it to check whether the current track
+// has stopped playing). All interactions with backend using the
+// funcXXX functions or manipulations of global state variables are
+// performed from the select loop goroutine, and never from HTTP
+// handlers.
 //
 // startSelectLoop also sets up a channel to receive SIGCHILDs
-// from mplayer and ensures the program exits when receiving one.
+// from the backend and ensures the program exits when receiving one.
 func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 	commandChan := make(chan interface{})
 	sigChan := make(chan os.Signal, 1)
@@ -881,7 +958,7 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 					cmd.replyChan <- funcGetStatusXML(in, outChan)
 				}
 			case <-outChan:
-				// discard unused output from mplayer
+				// discard unused output from the backend
 			case <-ticker.C:
 				if !stopped && getProp(in, outChan, "state") == "stopped" {
 					funcNext(in, outChan)
@@ -1034,8 +1111,10 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 // main
 
 func main() {
-	flags := processFlags()
 	processConfig()
+	args := setBackend()
+	flags := processFlags(args)
+	// set some variables from config file
 	remapCommands = confRemapCommands
 	password, port := confPassword, confPort
 	// override with flags if appropriate
@@ -1061,8 +1140,8 @@ in the file ~/.mplayer-rc.
 `)
 		os.Exit(1)
 	}
-	// start mplayer, select loop and web server
-	in, outChan := launchMPlayer(flags)
+	// start backend, select loop and web server
+	in, outChan := launchBackend(flags)
 	commandChan := startSelectLoop(in, outChan)
 	commandChan <- cmdPlay{id: -1} // initial play cmd
 	startWebServer(commandChan, password, port)

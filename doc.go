@@ -1,21 +1,21 @@
 // This file was automatically generated using Genman.
 // Do not edit.
 
-// MPlayer-RC is an MPlayer wrapper enabling remote control from a VLC remote.
+// MPlayer-RC is an MPlayer/MPV wrapper enabling use of a VLC remote.
 // 
 // Synopsis
 // 
 // Usage:
 // 
-//   mplayer-rc [mplayer-rc or mplayer options] [files/URLs]
+//   mplayer-rc [mplayer-rc or mplayer/mpv options] [files/URLs]
 // 
 // Description
 // 
-// MPlayer-RC enables remote control of the MPlayer and MPlayer2 command
-// line media players from a VLC remote (i.e. an application written to
-// use VLC's HTTP control interface). It is designed to work specifically
-// with the Android application Android-VLC-Remote which can be obtained
-// from F-Droid:
+// MPlayer-RC enables remote control of the MPlayer, MPlayer2 and MPV
+// command line media players from a VLC remote (i.e. an application
+// written to use VLC's HTTP control interface). It is designed to work
+// specifically with the Android application Android-VLC-Remote which can
+// be obtained from F-Droid:
 // 
 //     https://f-droid.org/repository/browse/?fdid=org.peterbaldwin.client.android.vlcremote
 // 
@@ -25,11 +25,11 @@
 // 
 // Other applications speaking the VLC HTTP protocol may work but are not
 // tested. VLC itself is not required since MPlayer-RC acts as a
-// translator, forwarding VLC HTTP commands received to MPlayer and
-// returning responses back.
+// translator, forwarding VLC commands received from the remote to the
+// backend player and returning responses back.
 // 
-// Invoke MPlayer-RC in the same way you would invoke MPlayer. For
-// example:
+// To use MPlayer-RC, invoke it in the same way you would invoke
+// MPlayer. For example:
 // 
 //     mplayer-rc -ao alsa track1.mp3 track2.mp3
 // 
@@ -37,8 +37,8 @@
 // 
 //     mplayer-rc -playlist file
 // 
-// You can then control MPlayer using Android-VLC-Remote on your Android
-// device.
+// You can then control the player using Android-VLC-Remote on your
+// Android device.
 // 
 // Android-VLC-Remote will prompt you for a password which you need to
 // inform MPlayer-RC about beforehand. For this you can use the special
@@ -50,16 +50,22 @@
 // 
 //     port=...
 // 
-// to change the default listening port (8080) instead of using the
-// -port flag.
+// to change the default listening port from 8080.
+// 
+// By default, MPlayer-RC uses MPlayer/MPlayer2 as its backend player. To
+// use MPV instead you can use -backend mpv on the command line,
+// backend=mpv in the config file, or rename the mplayer-rc binary to
+// mpv-rc.
 // 
 // Options
 // 
 // The following flags are available:
 // 
 //   -V    show version, license and further information
-//   -mplayer-help
-//         display the MPlayer usage message
+//   -backend backend
+//         set backend as the backend player (default mplayer)
+//   -backend-help
+//         display the backend player usage message
 //   -password pass
 //         use pass as the Android-VLC-Remote password
 //   -port port
@@ -73,20 +79,20 @@
 // 
 // Notes
 // 
-// Files and URLs are not passed through to MPlayer as command line
-// arguments and are instead retained by MPlayer-RC since they are
-// needed to implement shuffle. MPlayer is started by MPlayer-RC in
+// Files and URLs are not passed through to the backend player as command
+// line arguments and are instead retained by MPlayer-RC since they are
+// needed to implement shuffle. The backend is started by MPlayer-RC in
 // slave mode without any files/URLs on its command line and then asked
 // to play tracks via its slave mode protocol.
 // 
 // As a consequence of this there is currently a restriction on the
 // format of a playlist file. It must be UTF-8 "one file/URL per line"
-// format or a .m3u8 file. This is because it is not passed through to
-// MPlayer as a -playlist ... flag and is parsed instead by MPlayer-RC,
-// whose parsing is less sophisticated than MPlayer's.
+// format or a .m3u8 file. This is because it is not passed through using
+// the -playlist flag and is parsed instead by MPlayer-RC, whose parsing
+// is less sophisticated.
 // 
 // If the -remap-commands flag is given to MPlayer-RC or
-// remap-commands=true is set in its config file then some buttons within
+// remap-commands=yes is set in the config file then some buttons within
 // Android-VLC-Remote are repurposed to be more useful:
 // 
 //     • The "Audio track" button is repurposed to cycle through OSD modes.
@@ -95,10 +101,10 @@
 // 
 //     • The "Aspect ratio" button is repurposed to fast forward by 10 seconds.
 // 
-// Having the subtitle track/aspect ratio buttons remapped is convenient
-// when Android-VLC-Remote is used in portrait mode on a small
-// screen. The alternative of fast forwarding/rewinding using the
-// progress slider is otherwise quite fiddly.
+// One purpose of remapping is to have an easy way to quickly fast
+// forward and rewind when Android-VLC-Remote is used in portrait mode on
+// a small screen. The alternative otherwise is forwarding/rewinding
+// using the progress slider which is quite fiddly.
 // 
 // The following features of Android-VLC-Remote are working:
 // 
@@ -116,10 +122,7 @@
 //     • Metadata: The metadata passed through to the information box is
 // just the filename (as "title").
 // 
-// In testing, MPlayer2 seems to be more responsive than MPlayer with
-// certain types of files. It is not known why this is.
-// 
 // See also
 // 
-// mplayer(1)
+// mplayer(1), mpv(1)
 package main
