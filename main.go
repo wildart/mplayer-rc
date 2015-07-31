@@ -714,10 +714,13 @@ func funcAspect(in io.Writer, outChan <-chan string) {
 	} else {
 		if f, err := strconv.ParseFloat(
 			getProp(in, outChan, backend.propAspect), 64); err == nil {
-			// flip between 16:9 and 4:3
-			if f < 1.5555 {
+			// cycle between 4:3, 16:9 and 2.35:1
+			switch {
+			case f < 1.5555:
 				fmt.Fprintf(in, backend.cmdSwitchRatio+"\n", "1.7777")
-			} else {
+			case f < 2.05:
+				fmt.Fprintf(in, backend.cmdSwitchRatio+"\n", "2.35")
+			default:
 				fmt.Fprintf(in, backend.cmdSwitchRatio+"\n", "1.3333")
 			}
 		}
