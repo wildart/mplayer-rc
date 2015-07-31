@@ -361,10 +361,9 @@ func launchMPlayer(flags []string) (io.Writer, <-chan string) {
 // escapeTrack escapes a file name/url so it is suitable to pass
 // to mplayer with "loadfile"
 func escapeTrack(track string) string {
-	track = strings.Replace(track, "\\", "\\\\", -1)
-	track = strings.Replace(track, " ", "\\ ", -1)
-	track = strings.Replace(track, "#", "\\#", -1)
-	return track
+	track = strings.Replace(track, `\`, `\\`, -1)
+	track = strings.Replace(track, `"`, `\"`, -1)
+	return `"` + track + `"`
 }
 
 // getProp gets a property value from mplayer. It also handles the
