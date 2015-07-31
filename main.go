@@ -133,16 +133,16 @@ func processFlags() []string {
 		fmt.Fprintf(os.Stderr, "  -V\t")
 		fmt.Fprintf(os.Stderr,
 			"show version, license and further information\n")
-		fmt.Fprintf(os.Stderr, "  --remap-commands\n")
+		fmt.Fprintf(os.Stderr, "  -remap-commands\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse alternate actions for some VLC commands\n")
-		fmt.Fprintf(os.Stderr, "  --rc-password pass\n")
+		fmt.Fprintf(os.Stderr, "  -rc-password pass\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse pass as the Android-VLC-Remote password\n")
-		fmt.Fprintf(os.Stderr, "  --rc-port port\n")
+		fmt.Fprintf(os.Stderr, "  -rc-port port\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse port as the listening port for VLC commands (default 8080)\n")
-		fmt.Fprintf(os.Stderr, "  --mplayer-help\n")
+		fmt.Fprintf(os.Stderr, "  -mplayer-help\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tdisplay the MPlayer usage message\n")
 	}
@@ -1077,7 +1077,7 @@ func main() {
 		fmt.Fprint(os.Stderr,
 			`MPlayer-RC needs to have a password which is used to authorize
 Android-VLC-Remote. You can specify the password using the command
-line flag --rc-password=<pass> or by putting the line
+line flag -rc-password=<pass> or by putting the line
 
   rc-password=<pass>
 

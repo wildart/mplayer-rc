@@ -35,14 +35,14 @@
 // 
 // or
 // 
-//     mplayer-rc --playlist=file
+//     mplayer-rc -playlist file
 // 
 // You can then control MPlayer using Android-VLC-Remote on your Android
 // device.
 // 
 // Android-VLC-Remote will prompt you for a password which you need to
 // inform MPlayer-RC about beforehand. For this you can use the special
-// command line flag --rc-password or put the line
+// command line flag -rc-password or put the line
 // 
 //     rc-password=...
 // 
@@ -51,20 +51,20 @@
 //     rc-port=...
 // 
 // to change the default listening port (8080) instead of using the
-// --rc-port flag.
+// -rc-port flag.
 // 
 // Options
 // 
 // The following flags are available:
 // 
 //   -V    show version, license and further information
-//   --remap-commands
+//   -remap-commands
 //         use alternate actions for some VLC commands
-//   --rc-password pass
+//   -rc-password pass
 //         use pass as the Android-VLC-Remote password
-//   --rc-port port
+//   -rc-port port
 //         use port as the listening port for VLC commands (default 8080)
-//   --mplayer-help
+//   -mplayer-help
 //         display the MPlayer usage message
 // 
 // Files
@@ -82,10 +82,10 @@
 // As a consequence of this there is currently a restriction on the
 // format of a playlist file. It must be UTF-8 "one file/URL per line"
 // format or a .m3u8 file. This is because it is not passed through to
-// MPlayer as a --playlist=... flag and is parsed instead by MPlayer-RC,
+// MPlayer as a -playlist ... flag and is parsed instead by MPlayer-RC,
 // whose parsing is less sophisticated than MPlayer's.
 // 
-// If the --remap-commands flag is given to MPlayer-RC or
+// If the -remap-commands flag is given to MPlayer-RC or
 // remap-commands=true is set in its config file then some buttons within
 // Android-VLC-Remote are repurposed to be more useful:
 // 
