@@ -46,7 +46,7 @@
 // 
 //     rc-password=...
 // 
-// in the file ~/.mplayer/mplayer-rc. Similarly, you can also use
+// in the file ~/.mplayer-rc. Similarly, you can also use
 // 
 //     rc-port=...
 // 
@@ -69,7 +69,7 @@
 // 
 // Files
 // 
-// ~/.mplayer/mplayer-rc - configuration file
+// ~/.mplayer-rc - configuration file
 // 
 // Notes
 // 

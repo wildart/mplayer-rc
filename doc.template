@@ -39,7 +39,7 @@ command line flag -rc-password or put the line
 
     rc-password=...
 
-in the file ~/.mplayer/mplayer-rc. Similarly, you can also use
+in the file ~/.mplayer-rc. Similarly, you can also use
 
     rc-port=...
 
@@ -50,7 +50,7 @@ to change the default listening port (8080) instead of using the
 
 Files
 
-~/.mplayer/mplayer-rc - configuration file
+~/.mplayer-rc - configuration file
 
 Notes
 

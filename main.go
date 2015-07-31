@@ -1012,7 +1012,7 @@ func main() {
 		home = os.Getenv("USERPROFILE")
 	}
 	b, err := ioutil.ReadFile(
-		filepath.Join(home, ".mplayer", "mplayer-rc"))
+		filepath.Join(home, ".mplayer-rc"))
 	if err == nil {
 		scanner := bufio.NewScanner(bytes.NewBuffer(b))
 		for scanner.Scan() {
@@ -1053,7 +1053,7 @@ line flag -rc-password=<pass> or by putting the line
 
   rc-password=<pass>
 
-in the file ~/.mplayer/mplayer-rc.
+in the file ~/.mplayer-rc.
 `)
 		os.Exit(1)
 	}
