@@ -103,12 +103,7 @@ func needsParameter(flag string) bool {
 		return false
 	}
 	line1 := scanner.Text()
-	if strings.HasSuffix(line1, "Required parameter for option missing") {
-		// mplayer2
-		return true
-	}
-	if strings.HasPrefix(line1, "Error parsing option on the command line:") {
-		// mplayer
+	if strings.HasPrefix(line1, "Error parsing ") {
 		return true
 	}
 	return false
