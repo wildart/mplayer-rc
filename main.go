@@ -224,7 +224,7 @@ func processFlags(args []string) []string {
 			"    \tset backend as the backend player (default mplayer)\n")
 		fmt.Fprintf(os.Stderr, "  -password pass\n")
 		fmt.Fprintf(os.Stderr,
-			"    \tuse pass as the Android-VLC-Remote password\n")
+			"    \tuse pass as the VLC remote password\n")
 		fmt.Fprintf(os.Stderr, "  -port port\n")
 		fmt.Fprintf(os.Stderr,
 			"    \tuse port as the listening port for VLC commands (default 8080)\n")
