@@ -422,8 +422,8 @@ func launchBackend(flags []string) (io.Writer, <-chan string) {
 			outChan <- scanner.Text()
 		}
 	}()
-	// write a blank line to force MPV to give some output at startup
-	io.WriteString(in, "\n")
+	// give a bad command to force MPV to give some output at startup
+	io.WriteString(in, "XXXX\n")
 	// check for command line errors at backend startup
 	for line := range outChan {
 		if strings.HasPrefix(line, backend.matchStartupFail) {
@@ -555,10 +555,12 @@ func funcPlay(in io.Writer, outChan <-chan string, id int) {
 			funcNext(in, outChan)
 			return
 		}
-		if strings.HasPrefix(line, backend.matchPlayingOK) {
-			// valid track found
-			stopped = false
-			return
+		for _, match := range backend.matchPlayingOK {
+			if strings.HasPrefix(line, match) {
+				// valid track found
+				stopped = false
+				return
+			}
 		}
 	}
 }

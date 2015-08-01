@@ -33,7 +33,7 @@ type backendStrings struct {
 	startFlags []string
 
 	matchNeedsParam    string
-	matchPlayingOK     string
+	matchPlayingOK     []string
 	matchPlayingPrefix string
 	matchPlayingSuffix string
 	matchStartupFail   string
@@ -68,7 +68,7 @@ var backendMPlayer = backendStrings{
 	startFlags: []string{"-idle", "-slave", "-quiet", "-noconsolecontrols"},
 
 	matchNeedsParam:    "Error parsing ",
-	matchPlayingOK:     "Starting playback...",
+	matchPlayingOK:     []string{"Starting playback..."},
 	matchPlayingPrefix: "Playing ",
 	matchPlayingSuffix: ".",
 	matchStartupFail:   "Error ",
@@ -104,7 +104,7 @@ var backendMPV = backendStrings{
 		"--idle", "--input-file=/dev/stdin", "--quiet", "--input-terminal=no"},
 
 	matchNeedsParam:    "Error parsing ",
-	matchPlayingOK:     "[stream] ",
+	matchPlayingOK:     []string{"[stream] ", " (+)"},
 	matchPlayingPrefix: "Playing: ",
 	matchPlayingSuffix: "",
 	matchStartupFail:   "Error ",
