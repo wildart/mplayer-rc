@@ -92,7 +92,7 @@ var backendMPV = backendStrings{
 	cmdFullscreen:  "cycle fullscreen",
 	cmdGetProp:     "", // set by init function
 	cmdLoadfile:    "loadfile %s",
-	cmdNoop:        "",
+	cmdNoop:        "ignore",
 	cmdOSD:         "osd",
 	cmdPause:       "cycle pause",
 	cmdSeek0:       "seek %d relative",
