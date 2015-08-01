@@ -719,6 +719,7 @@ func funcAudio(in io.Writer) {
 		fmt.Fprintf(in, backend.cmdSwitchAudio+"\n")
 	}
 }
+
 func funcSubtitle(in io.Writer) {
 	if remapCommands {
 		// repurpose to rewind by 10 seconds
