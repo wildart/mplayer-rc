@@ -634,14 +634,11 @@ func funcStop(in io.Writer, outChan <-chan string) {
 		// wait for backend to confirm stop before updating the
 		// stopped state
 		ticker := time.NewTicker(250 * time.Millisecond)
-		for {
-			select {
-			case <-ticker.C:
-				if getProp(in, outChan, "state") == "stopped" {
-					ticker.Stop()
-					stopped = true
-					return
-				}
+		for _ = range ticker.C {
+			if getProp(in, outChan, "state") == "stopped" {
+				ticker.Stop()
+				stopped = true
+				return
 			}
 		}
 	}
