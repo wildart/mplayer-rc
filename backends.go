@@ -195,5 +195,4 @@ func init() {
 			}
 		}
 	}
-	return
 }
