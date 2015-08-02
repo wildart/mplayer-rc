@@ -123,7 +123,7 @@ var backendMPV = backendStrings{
 	cmdSubSelect:   "cycle sid",
 	cmdSwitchAudio: "cycle aid",
 	cmdSwitchRatio: "set video-aspect %s",
-	cmdVolume0:     "cycle volume %d",
+	cmdVolume0:     "add volume %d",
 	cmdVolume1:     "set volume %d",
 
 	propAspect:     "video-aspect",
