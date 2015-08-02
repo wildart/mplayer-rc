@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"io"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -183,8 +184,12 @@ func init() {
 	scanner = runMPV(in, flags...)
 	for scanner.Scan() {
 		if strings.HasPrefix(scanner.Text(), "SOFTVOLMAX_") {
-			max := scanner.Text()[len("SOFTVOLMAX_"):]
-			volumeMax = strings.Split(max, ".")[0]
+			volumeMax = scanner.Text()[len("SOFTVOLMAX_"):]
+			if strings.Contains(volumeMax, ".") {
+				if f, err := strconv.ParseFloat(volumeMax, 64); err == nil {
+					volumeMax = strconv.Itoa(int(f))
+				}
+			}
 		}
 	}
 	return
