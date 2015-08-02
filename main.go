@@ -926,9 +926,6 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	if filename != "(unavailable)" {
 		data.Title = filename
 		data.Filename = filename
-	} else {
-		data.Title = ""
-		data.Filename = ""
 	}
 	buf := new(bytes.Buffer)
 	buf.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`)
