@@ -733,6 +733,8 @@ func funcFullscreen(in io.Writer) {
 }
 
 func funcVolume(in io.Writer, val, mode int) {
+	max, _ := strconv.Atoi(backend.volumeMax)
+	val = val * max / 100
 	switch mode {
 	case 0: // relative
 		fmt.Fprintf(in, backend.cmdVolume0+"\n", val)
@@ -861,7 +863,8 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 		}
 	}
 	data.Fullscreen = getBool(backend.propFullscreen)
-	data.Volume = int(getFloat(backend.propVolume)) * 320 / 100
+	max, _ := strconv.Atoi(backend.volumeMax)
+	data.Volume = int(getFloat(backend.propVolume)) * 100 / max * 320 / 100
 	data.Loop = loop
 	data.Random = shuffle
 	data.Length = int(getFloat(backend.propLength))

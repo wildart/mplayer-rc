@@ -24,6 +24,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"io"
 	"os/exec"
 	"strings"
 )
@@ -31,6 +32,7 @@ import (
 type backendStrings struct {
 	binary     string
 	startFlags []string
+	volumeMax  string
 
 	matchNeedsParam    string
 	matchPlayingOK     []string
@@ -66,6 +68,7 @@ type backendStrings struct {
 var backendMPlayer = backendStrings{
 	binary:     "mplayer",
 	startFlags: []string{"-idle", "-slave", "-quiet", "-noconsolecontrols"},
+	volumeMax:  "100",
 
 	matchNeedsParam:    "Error parsing ",
 	matchPlayingOK:     []string{"Starting playback..."},
@@ -102,6 +105,7 @@ var backendMPV = backendStrings{
 	binary: "mpv",
 	startFlags: []string{
 		"--idle", "--input-file=/dev/stdin", "--quiet", "--input-terminal=no"},
+	volumeMax: "", // set by init function
 
 	matchNeedsParam:    "Error parsing ",
 	matchPlayingOK:     []string{"[stream] ", " (+)"},
@@ -139,34 +143,49 @@ var backendMPV = backendStrings{
 func init() {
 	printText := "print_text"
 	length := "length"
+	volumeMax := "100"
 	defer func() {
 		backendMPV.cmdGetProp = printText + " ANS_%s=${%s}"
 		backendMPV.propLength = length
+		backendMPV.volumeMax = volumeMax
 	}()
-	cmd := exec.Command(backendMPV.binary, "--input-cmdlist")
-	out := new(bytes.Buffer)
-	cmd.Stdout = out
-	err := cmd.Run()
+	runMPV := func(in io.Reader, flags ...string) *bufio.Scanner {
+		cmd := exec.Command(backendMPV.binary, flags...)
+		out := new(bytes.Buffer)
+		cmd.Stdin = in
+		cmd.Stdout = out
+		_ = cmd.Run()
+		return bufio.NewScanner(out)
+	}
+	// exit if no mpv binary
+	_, err := exec.LookPath("mpv")
 	if err != nil {
 		return
 	}
-	scanner := bufio.NewScanner(out)
+	// determine printText
+	scanner := runMPV(nil, "--input-cmdlist")
 	for scanner.Scan() {
 		if strings.HasPrefix(scanner.Text(), "print-text ") {
 			printText = "print-text"
 		}
 	}
-	cmd = exec.Command(backendMPV.binary, "--list-properties")
-	out = new(bytes.Buffer)
-	cmd.Stdout = out
-	err = cmd.Run()
-	if err != nil {
-		return
-	}
-	scanner = bufio.NewScanner(out)
+	// determine length
+	scanner = runMPV(nil, "--list-properties")
 	for scanner.Scan() {
 		if scanner.Text() == " duration" {
 			length = "duration"
 		}
 	}
+	// determine volumeMax
+	in := strings.NewReader(
+		printText + " SOFTVOLMAX_${options/softvol-max}\nquit\n")
+	flags := append([]string{"--volume=101"}, backendMPV.startFlags...)
+	scanner = runMPV(in, flags...)
+	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), "SOFTVOLMAX_") {
+			max := scanner.Text()[len("SOFTVOLMAX_"):]
+			volumeMax = strings.Split(max, ".")[0]
+		}
+	}
+	return
 }
