@@ -498,7 +498,7 @@ type cmdAudio struct{}
 type cmdSubtitle struct{}
 type cmdFullscreen struct{} // a toggle
 type cmdVolume struct {
-	val  int // volume (0 -> 100 in absolute mode)
+	val  int // volume (0 -> 320 in absolute mode)
 	mode int // 0 relative, 1 absolute
 }
 type cmdSeek struct {
@@ -733,8 +733,8 @@ func funcFullscreen(in io.Writer) {
 }
 
 func funcVolume(in io.Writer, val, mode int) {
-	max, _ := strconv.Atoi(backend.volumeMax)
-	val = val * max / 100
+	volMax, _ := strconv.Atoi(backend.volumeMax)
+	val = val * volMax / 320
 	switch mode {
 	case 0: // relative
 		fmt.Fprintf(in, backend.cmdVolume0+"\n", val)
@@ -863,8 +863,8 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 		}
 	}
 	data.Fullscreen = getBool(backend.propFullscreen)
-	max, _ := strconv.Atoi(backend.volumeMax)
-	data.Volume = int(getFloat(backend.propVolume)) * 100 / max * 320 / 100
+	volMax, _ := strconv.Atoi(backend.volumeMax)
+	data.Volume = int(getFloat(backend.propVolume)) * 320 / volMax
 	data.Loop = loop
 	data.Random = shuffle
 	data.Length = int(getFloat(backend.propLength))
@@ -1035,8 +1035,8 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 						mode = 1
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
-						if !percent {
-							i = i * 100 / 320
+						if percent {
+							i = i * 320 / 100
 						}
 						if val[0] == '-' {
 							i = -i
