@@ -157,7 +157,7 @@ func init() {
 		_ = cmd.Run()
 		return bufio.NewScanner(out)
 	}
-	// exit if no mpv binary
+	// return if no mpv binary
 	_, err := exec.LookPath("mpv")
 	if err != nil {
 		return
