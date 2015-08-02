@@ -183,6 +183,9 @@ func init() {
 	flags := append([]string{"--volume=101"}, backendMPV.startFlags...)
 	scanner = runMPV(in, flags...)
 	for scanner.Scan() {
+		// Note that --volume=101 purposely causes MPV < 0.10.x to
+		// print an error and not the value of softvol-max. Hence for
+		// MPV < 0.10.x, volumeMax remains at 100 as it should.
 		if strings.HasPrefix(scanner.Text(), "SOFTVOLMAX_") {
 			volumeMax = scanner.Text()[len("SOFTVOLMAX_"):]
 			if strings.Contains(volumeMax, ".") {
