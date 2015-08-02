@@ -483,6 +483,14 @@ func getProp(in io.Writer, outChan <-chan string, prop string) string {
 // "select loop" commands and their associated command functions.
 // each cmdXXX has a corresponding funcXXX.
 
+const (
+	volAbs  = 1 // volume mode absolute
+	volRel  = 0 // volume mode relative
+	seekAbs = 2 // seek mode absolute
+	seekPct = 1 // seek mode percent
+	seekRel = 0 // seek mode relative
+)
+
 type cmdPlay struct {
 	id int // track id
 }
@@ -499,11 +507,11 @@ type cmdSubtitle struct{}
 type cmdFullscreen struct{} // a toggle
 type cmdVolume struct {
 	val  int // volume (0 -> 320 in absolute mode)
-	mode int // 0 relative, 1 absolute
+	mode int // mode: absolute/relative
 }
 type cmdSeek struct {
 	val  int // time in seconds (can be positive or negative value)
-	mode int // 0 relative, 1 percent, 2 absolute
+	mode int // mode: absolute/percent/relative
 }
 type cmdGetPlaylistXML struct {
 	replyChan chan<- string
@@ -736,21 +744,21 @@ func funcVolume(in io.Writer, val, mode int) {
 	volMax, _ := strconv.Atoi(backend.volumeMax)
 	val = val * volMax / 320
 	switch mode {
-	case 0: // relative
-		fmt.Fprintf(in, backend.cmdVolume0+"\n", val)
-	case 1: // absolute
-		fmt.Fprintf(in, backend.cmdVolume1+"\n", val)
+	case volAbs: // absolute
+		fmt.Fprintf(in, backend.cmdVolumeAbs+"\n", val)
+	case volRel: // relative
+		fmt.Fprintf(in, backend.cmdVolumeRel+"\n", val)
 	}
 }
 
 func funcSeek(in io.Writer, val, mode int) {
 	switch mode {
-	case 0: // relative
-		fmt.Fprintf(in, backend.cmdSeek0+"\n", val)
-	case 1: // percent
-		fmt.Fprintf(in, backend.cmdSeek1+"\n", val)
-	case 2: // absolute
-		fmt.Fprintf(in, backend.cmdSeek2+"\n", val)
+	case seekAbs: // absolute
+		fmt.Fprintf(in, backend.cmdSeekAbs+"\n", val)
+	case seekPct: // percent
+		fmt.Fprintf(in, backend.cmdSeekPct+"\n", val)
+	case seekRel: // relative
+		fmt.Fprintf(in, backend.cmdSeekRel+"\n", val)
 	}
 }
 
@@ -1018,7 +1026,8 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				commandChan <- cmdFullscreen{}
 			case "volume":
 				val := r.FormValue("val")
-				var mode, off int
+				var off int
+				mode := volAbs
 				percent := false
 				if len(val) > 0 && val[len(val)-1] == '%' {
 					val = val[:len(val)-1]
@@ -1028,11 +1037,11 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 					switch val[0] {
 					// note: we get ' ' when + is not URL-encoded
 					case '+', '-', ' ':
-						// relative mode (mode == 0)
+						// relative mode
+						mode = volRel
 						off = 1
 					default:
 						// absolute mode
-						mode = 1
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
 						if percent {
@@ -1046,11 +1055,12 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				}
 			case "seek":
 				val := r.FormValue("val")
-				var mode, off int
+				var off int
+				mode := seekAbs
 				if len(val) > 0 && val[len(val)-1] == '%' {
 					// percent mode
 					val = val[:len(val)-1]
-					mode = 1
+					mode = seekPct
 				}
 				if len(val) > 0 &&
 					(val[len(val)-1] == 's' || val[len(val)-1] == 'S') {
@@ -1060,13 +1070,11 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 					switch val[0] {
 					// note: we get ' ' when + is not URL-encoded
 					case '+', '-', ' ':
-						// relative mode (mode == 0)
+						// relative mode
+						mode = seekRel
 						off = 1
 					default:
-						if mode != 1 {
-							// absolute mode
-							mode = 2
-						}
+						// absolute mode
 					}
 					if i, err := strconv.Atoi(val[off:]); err == nil {
 						if val[0] == '-' {

@@ -47,15 +47,15 @@ type backendStrings struct {
 	cmdNoop        string
 	cmdOSD         string
 	cmdPause       string
-	cmdSeek0       string
-	cmdSeek1       string
-	cmdSeek2       string
+	cmdSeekAbs     string
+	cmdSeekPct     string
+	cmdSeekRel     string
 	cmdStop        string
 	cmdSubSelect   string
 	cmdSwitchAudio string
 	cmdSwitchRatio string
-	cmdVolume0     string
-	cmdVolume1     string
+	cmdVolumeAbs   string
+	cmdVolumeRel   string
 
 	propAspect     string
 	propFilename   string
@@ -83,15 +83,15 @@ var backendMPlayer = backendStrings{
 	cmdNoop:        "mute 0",
 	cmdOSD:         "pausing_keep_force osd",
 	cmdPause:       "pause",
-	cmdSeek0:       "pausing_keep_force seek %d 0",
-	cmdSeek1:       "pausing_keep_force seek %d 1",
-	cmdSeek2:       "pausing_keep_force seek %d 2",
+	cmdSeekAbs:     "pausing_keep_force seek %d 2",
+	cmdSeekPct:     "pausing_keep_force seek %d 1",
+	cmdSeekRel:     "pausing_keep_force seek %d 0",
 	cmdStop:        "stop",
 	cmdSubSelect:   "pausing_keep_force sub_select",
 	cmdSwitchAudio: "pausing_keep_force switch_audio",
 	cmdSwitchRatio: "pausing_keep_force switch_ratio %s",
-	cmdVolume0:     "pausing_keep_force volume %d 0",
-	cmdVolume1:     "pausing_keep_force volume %d 1",
+	cmdVolumeAbs:   "pausing_keep_force volume %d 1",
+	cmdVolumeRel:   "pausing_keep_force volume %d 0",
 
 	propAspect:     "aspect",
 	propFilename:   "filename",
@@ -120,15 +120,15 @@ var backendMPV = backendStrings{
 	cmdNoop:        "ignore",
 	cmdOSD:         "osd",
 	cmdPause:       "cycle pause",
-	cmdSeek0:       "seek %d relative",
-	cmdSeek1:       "seek %d absolute-percent",
-	cmdSeek2:       "seek %d absolute",
+	cmdSeekAbs:     "seek %d absolute",
+	cmdSeekPct:     "seek %d absolute-percent",
+	cmdSeekRel:     "seek %d relative",
 	cmdStop:        "stop",
 	cmdSubSelect:   "cycle sid",
 	cmdSwitchAudio: "cycle aid",
 	cmdSwitchRatio: "set video-aspect %s",
-	cmdVolume0:     "add volume %d",
-	cmdVolume1:     "set volume %d",
+	cmdVolumeAbs:   "set volume %d",
+	cmdVolumeRel:   "add volume %d",
 
 	propAspect:     "video-aspect",
 	propFilename:   "filename",
