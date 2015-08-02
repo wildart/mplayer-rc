@@ -468,8 +468,14 @@ func getProp(in io.Writer, outChan <-chan string, prop string) string {
 	}
 	var ans string
 	for line := range outChan {
-		if strings.HasPrefix(line, "ANS_ERROR=") {
+		if line == "ANS_ERROR=PROPERTY_UNAVAILABLE" {
+			// convert MPlayer response to MPV response
 			ans = "(unavailable)"
+			break
+		}
+		if strings.HasPrefix(line, "ANS_ERROR=") {
+			// convert MPlayer response to MPV response
+			ans = "(error)"
 			break
 		}
 		if strings.HasPrefix(line, "ANS_"+prop+"=") {
