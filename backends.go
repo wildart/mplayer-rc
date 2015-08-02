@@ -30,10 +30,10 @@ import (
 	"strings"
 )
 
-type backendStrings struct {
+type backendData struct {
 	binary     string
 	startFlags []string
-	volumeMax  string
+	volumeMax  int
 
 	matchNeedsParam    string
 	matchPlayingOK     []string
@@ -66,10 +66,10 @@ type backendStrings struct {
 	propVolume     string
 }
 
-var backendMPlayer = backendStrings{
+var backendMPlayer = backendData{
 	binary:     "mplayer",
 	startFlags: []string{"-idle", "-slave", "-quiet", "-noconsolecontrols"},
-	volumeMax:  "100",
+	volumeMax:  100,
 
 	matchNeedsParam:    "Error parsing ",
 	matchPlayingOK:     []string{"Starting playback..."},
@@ -102,11 +102,11 @@ var backendMPlayer = backendStrings{
 	propVolume:     "volume",
 }
 
-var backendMPV = backendStrings{
+var backendMPV = backendData{
 	binary: "mpv",
 	startFlags: []string{
 		"--idle", "--input-file=/dev/stdin", "--quiet", "--input-terminal=no"},
-	volumeMax: "", // set by init function
+	volumeMax: 0, // set by init function
 
 	matchNeedsParam:    "Error parsing ",
 	matchPlayingOK:     []string{"[stream] ", " (+)"},
@@ -139,12 +139,12 @@ var backendMPV = backendStrings{
 	propVolume:     "volume",
 }
 
-// init sets a few strings in backendMPV that vary by MPV version. We
+// init sets a few fields in backendMPV that vary by MPV version. We
 // query the MPV that is installed to determine which to use.
 func init() {
 	printText := "print_text"
 	length := "length"
-	volumeMax := "100"
+	volumeMax := 100
 	defer func() {
 		backendMPV.cmdGetProp = printText + " ANS_%s=${%s}"
 		backendMPV.propLength = length
@@ -187,10 +187,10 @@ func init() {
 		// print an error and not the value of softvol-max. Hence for
 		// MPV < 0.10.x, volumeMax remains at 100 as it should.
 		if strings.HasPrefix(scanner.Text(), "SOFTVOLMAX_") {
-			volumeMax = scanner.Text()[len("SOFTVOLMAX_"):]
-			if strings.Contains(volumeMax, ".") {
-				if f, err := strconv.ParseFloat(volumeMax, 64); err == nil {
-					volumeMax = strconv.Itoa(int(f))
+			max := scanner.Text()[len("SOFTVOLMAX_"):]
+			if f, err := strconv.ParseFloat(max, 64); err == nil {
+				if int(f) > 0 {
+					volumeMax = int(f)
 				}
 			}
 		}

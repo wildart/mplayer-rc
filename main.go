@@ -379,7 +379,7 @@ var (
 	// whether we remap some VLC commands to perform alternate actions
 	remapCommands bool
 	// the backend, set by setBackend
-	backend *backendStrings
+	backend *backendData
 )
 
 // idCounter is incremented on each creation of a playlist id. id
@@ -504,25 +504,12 @@ func getProp(in io.Writer, outChan <-chan string, prop string) string {
 			ans = strconv.Itoa(result)
 		}
 	case backend.propVolume:
-		// convert float to int
-		if strings.Contains(ans, ".") {
-			if f, err := strconv.ParseFloat(ans, 64); err == nil {
-				ans = strconv.Itoa(int(f))
-			}
+		// convert volume to integer in range 0->320
+		var vol int
+		if f, err := strconv.ParseFloat(ans, 64); err == nil {
+			vol = int(f)
 		}
-		// convert volume to 0->320 scale
-		var volMax, vol int
-		var err error
-		if volMax, err = strconv.Atoi(backend.volumeMax); err != nil {
-			break
-		}
-		if volMax == 0 {
-			break
-		}
-		if vol, err = strconv.Atoi(ans); err != nil {
-			break
-		}
-		ans = strconv.Itoa(vol * 320 / volMax)
+		ans = strconv.Itoa(vol * 320 / backend.volumeMax)
 	}
 	return ans
 }
@@ -788,9 +775,7 @@ func funcFullscreen(in io.Writer) {
 }
 
 func funcVolume(in io.Writer, val, mode int) {
-	if volMax, err := strconv.Atoi(backend.volumeMax); err == nil {
-		val = val * volMax / 320
-	}
+	val = val * backend.volumeMax / 320
 	switch mode {
 	case volAbs: // absolute
 		fmt.Fprintf(in, backend.cmdVolumeAbs+"\n", val)
