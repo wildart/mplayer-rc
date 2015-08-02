@@ -137,16 +137,14 @@ var backendMPV = backendStrings{
 // init sets a few strings in backendMPV that vary by MPV version. We
 // query the MPV that is installed to determine which to use.
 func init() {
-	printText := "print-text"
-	length := "duration"
+	printText := "print_text"
+	length := "length"
 	defer func() {
 		backendMPV.cmdGetProp = printText + " ANS_%s=${%s}"
 		backendMPV.propLength = length
 	}()
-	cmd := exec.Command(backendMPV.binary, backendMPV.startFlags...)
+	cmd := exec.Command(backendMPV.binary, "--input-cmdlist")
 	out := new(bytes.Buffer)
-	cmd.Stdin = strings.NewReader(
-		"print-text ${duration}\nprint_text ${duration}\nquit\n")
 	cmd.Stdout = out
 	err := cmd.Run()
 	if err != nil {
@@ -154,12 +152,21 @@ func init() {
 	}
 	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
-		if strings.HasSuffix(
-			scanner.Text(), "Command 'print-text' not found.") {
-			printText = "print_text"
+		if strings.HasPrefix(scanner.Text(), "print-text ") {
+			printText = "print-text"
 		}
-		if scanner.Text() == "(error)" {
-			length = "length"
+	}
+	cmd = exec.Command(backendMPV.binary, "--list-properties")
+	out = new(bytes.Buffer)
+	cmd.Stdout = out
+	err = cmd.Run()
+	if err != nil {
+		return
+	}
+	scanner = bufio.NewScanner(out)
+	for scanner.Scan() {
+		if scanner.Text() == " duration" {
+			length = "duration"
 		}
 	}
 }
