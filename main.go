@@ -448,7 +448,7 @@ func escapeTrack(track string) string {
 }
 
 // getProp gets a property value from the backend. It also handles the
-// pseudo-property, "state".
+// pseudo-property, "state", and harmonizes backend responses.
 func getProp(in io.Writer, outChan <-chan string, prop string) string {
 	if prop == "state" {
 		// first deal with the pseudo-property, "state"
@@ -462,10 +462,7 @@ func getProp(in io.Writer, outChan <-chan string, prop string) string {
 		return "playing"
 	}
 	// now deal with real properties.
-	_, err := fmt.Fprintf(in, backend.cmdGetProp+"\n", prop, prop)
-	if err != nil {
-		log.Println(err)
-	}
+	fmt.Fprintf(in, backend.cmdGetProp+"\n", prop, prop)
 	var ans string
 	for line := range outChan {
 		if line == "ANS_ERROR=PROPERTY_UNAVAILABLE" {
@@ -482,6 +479,50 @@ func getProp(in io.Writer, outChan <-chan string, prop string) string {
 			ans = line[len("ANS_"+prop+"="):]
 			break
 		}
+	}
+	switch ans {
+	case "(unavailable)", "(error)":
+		return ans
+	}
+	// do some conversions to harmonize backend responses
+	switch prop {
+	case backend.propLength, backend.propTimePos:
+		// convert float to int (MPlayer)
+		if strings.Contains(ans, ".") {
+			if f, err := strconv.ParseFloat(ans, 64); err == nil {
+				ans = strconv.Itoa(int(f))
+			}
+		}
+		// convert HH:MM:SS to seconds (MPV)
+		if strings.Contains(ans, ":") {
+			var result int
+			for _, s := range strings.Split(ans, ":") {
+				if i, err := strconv.Atoi(s); err == nil {
+					result = 60*result + i
+				}
+			}
+			ans = strconv.Itoa(result)
+		}
+	case backend.propVolume:
+		// convert float to int
+		if strings.Contains(ans, ".") {
+			if f, err := strconv.ParseFloat(ans, 64); err == nil {
+				ans = strconv.Itoa(int(f))
+			}
+		}
+		// convert volume to 0->320 scale
+		var volMax, vol int
+		var err error
+		if volMax, err = strconv.Atoi(backend.volumeMax); err != nil {
+			break
+		}
+		if volMax == 0 {
+			break
+		}
+		if vol, err = strconv.Atoi(ans); err != nil {
+			break
+		}
+		ans = strconv.Itoa(vol * 320 / volMax)
 	}
 	return ans
 }
@@ -747,8 +788,9 @@ func funcFullscreen(in io.Writer) {
 }
 
 func funcVolume(in io.Writer, val, mode int) {
-	volMax, _ := strconv.Atoi(backend.volumeMax)
-	val = val * volMax / 320
+	if volMax, err := strconv.Atoi(backend.volumeMax); err == nil {
+		val = val * volMax / 320
+	}
 	switch mode {
 	case volAbs: // absolute
 		fmt.Fprintf(in, backend.cmdVolumeAbs+"\n", val)
@@ -859,15 +901,11 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	get := func(prop string) string {
 		return getProp(in, outChan, prop)
 	}
-	getFloat := func(prop string) float64 {
-		// also handles times in HH:MM:SS format
-		var result float64
-		for _, s := range strings.Split(get(prop), ":") {
-			if f, err := strconv.ParseFloat(s, 64); err == nil {
-				result = 60*result + f
-			}
+	getInt := func(prop string) int {
+		if i, err := strconv.Atoi(get(prop)); err == nil {
+			return i
 		}
-		return result
+		return 0
 	}
 	getBool := func(prop string) bool {
 		if get(prop) == "yes" {
@@ -877,14 +915,13 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 		}
 	}
 	data.Fullscreen = getBool(backend.propFullscreen)
-	volMax, _ := strconv.Atoi(backend.volumeMax)
-	data.Volume = int(getFloat(backend.propVolume)) * 320 / volMax
+	data.Volume = getInt(backend.propVolume)
 	data.Loop = loop
 	data.Random = shuffle
-	data.Length = int(getFloat(backend.propLength))
+	data.Length = getInt(backend.propLength)
 	data.Repeat = repeat
 	data.State = get("state")
-	data.Time = int(getFloat(backend.propTimePos))
+	data.Time = getInt(backend.propTimePos)
 	filename := get(backend.propFilename)
 	if filename != "(unavailable)" {
 		data.Title = filename
