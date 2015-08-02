@@ -557,7 +557,7 @@ type cmdVolume struct {
 	mode int // mode: absolute/relative
 }
 type cmdSeek struct {
-	val  int // time in seconds (can be positive or negative value)
+	val  int // time in seconds/percent (can be positive or negative value)
 	mode int // mode: absolute/percent/relative
 }
 type cmdGetPlaylistXML struct {
