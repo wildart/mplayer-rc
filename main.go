@@ -425,9 +425,13 @@ func launchBackend(commandChan chan<- interface{}, flags []string) (io.Writer, <
 		for scanner.Scan() {
 			switch {
 			case strings.HasPrefix(scanner.Text(), backend.matchCmdPrev):
-				commandChan <- cmdPrev{}
+				go func() {
+					commandChan <- cmdPrev{}
+				}()
 			case strings.HasPrefix(scanner.Text(), backend.matchCmdNext):
-				commandChan <- cmdNext{}
+				go func() {
+					commandChan <- cmdNext{}
+				}()
 			default:
 				outChan <- scanner.Text()
 			}
