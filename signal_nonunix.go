@@ -23,6 +23,6 @@
 
 package main
 
-func startSignalHandler(commandChan chan interface{}) {
+func startSignalHandler(commandChan chan<- interface{}) {
 	// currently a noop on non-unix
 }

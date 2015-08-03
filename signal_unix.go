@@ -30,7 +30,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func startSignalHandler(commandChan chan interface{}) {
+func startSignalHandler(commandChan chan<- interface{}) {
 	sigChan := make(chan os.Signal, 100)
 	signal.Notify(sigChan, unix.SIGCHLD, unix.SIGUSR1, unix.SIGUSR2)
 	go func() {
