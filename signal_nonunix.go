@@ -23,9 +23,6 @@
 
 package main
 
-import "os"
-
-// setupSIGCHLD ensures SIGCHLDs are communicated to the program
-func setupSIGCHLD(sigChan chan os.Signal) {
+func startSignalHandler(commandChan chan interface{}) {
 	// currently a noop on non-unix
 }

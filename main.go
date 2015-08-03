@@ -931,17 +931,12 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 // performed from the select loop goroutine, and never from HTTP
 // handlers.
 //
-// startSelectLoop also sets up a channel to receive SIGCHILDs
-// from the backend and ensures the program exits when receiving one.
+// When using Unix, startSelectLoop also starts up a signal handler in
+// a goroutine to handle SIGCHLD, SIGUSR1 and SIGUSR2.
 func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 	commandChan := make(chan interface{})
-	sigChan := make(chan os.Signal, 1)
 	ticker := time.NewTicker(250 * time.Millisecond)
-	setupSIGCHLD(sigChan)
-	go func() {
-		<-sigChan
-		os.Exit(0)
-	}()
+	startSignalHandler(commandChan)
 	go func() {
 		for {
 			select {

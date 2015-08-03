@@ -30,7 +30,19 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// setupSIGCHLD ensures SIGCHLDs are communicated to the program
-func setupSIGCHLD(sigChan chan os.Signal) {
-	signal.Notify(sigChan, unix.SIGCHLD)
+func startSignalHandler(commandChan chan interface{}) {
+	sigChan := make(chan os.Signal, 100)
+	signal.Notify(sigChan, unix.SIGCHLD, unix.SIGUSR1, unix.SIGUSR2)
+	go func() {
+		for sig := range sigChan {
+			switch sig {
+			case unix.SIGCHLD:
+				os.Exit(0)
+			case unix.SIGUSR1:
+				commandChan <- cmdPrev{}
+			case unix.SIGUSR2:
+				commandChan <- cmdNext{}
+			}
+		}
+	}()
 }

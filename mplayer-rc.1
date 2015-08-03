@@ -1,7 +1,7 @@
 .\" This file was automatically generated using Genman.
 .\" Do not edit.
 .\"
-.TH MPLAYER\-RC 1 "2015-08-01"
+.TH MPLAYER\-RC 1 "2015-08-03"
 
 .SH NAME
 \&mplayer\-rc \- MPlayer/MPV wrapper enabling use of a VLC remote
@@ -156,6 +156,39 @@
 
 \&    • Metadata: The metadata passed through to the information box is
 \&just the filename (as "title").
+
+.SH SIGNALS
+\&Since MPlayer-RC takes handling of the playlist away from the backend,
+\&the < and > keys (next/previous playlist entry) stop working since as
+\&far as the backend is concerned there is just one playlist
+\&entry. However, it is possible to work around this as follows:
+
+\&When running on a Unix system, MPlayer-RC responds to SIGUSR1 and
+\&SIGUSR2 signals by executing previous track and next track
+\&commands. This allows you to put something like this in your
+\&input.conf (for MPV)
+
+.ft CW
+.nf
+.RS 4
+\&< run killall \-SIGUSR1 mplayer-rc
+\&> run killall \-SIGUSR2 mplayer-rc
+.RE
+.fi
+.ft
+
+\&or this (for MPlayer)
+
+.ft CW
+.nf
+.RS 4
+\&< run "killall \-SIGUSR1 mplayer-rc"
+\&> run "killall \-SIGUSR2 mplayer-rc"
+.RE
+.fi
+.ft
+
+\&and your < and > keys should then work again.
 
 .SH SEE ALSO
 \&mplayer(1), mpv(1)
