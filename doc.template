@@ -76,34 +76,31 @@ format or a .m3u8 file. This is because it is not passed through using
 the -playlist flag and is parsed instead by MPlayer-RC, whose parsing
 is less sophisticated.
 
-Signals
-
 Since MPlayer-RC takes handling of the playlist away from the backend,
 the < and > keyboard keys (next/previous playlist entry) stop working
 since as far as the backend is concerned there is just one playlist
-entry, the currently playing track. However, it is possible to work
-around this on a Unix system as follows:
+entry (the currently playing track). However, it is possible to work
+around this.
 
-MPlayer-RC responds to SIGUSR1 and SIGUSR2 signals by executing
-previous track and next track commands. This allows you to put
-something like this in your input.conf (for MPV)
+If you are using MPlayer/MPlayer2 you can put the following in your
+input.conf:
 
-    < run killall -SIGUSR1 mplayer-rc
-    > run killall -SIGUSR2 mplayer-rc
+    < pausing_keep_force get_property stream_start
+    > pausing_keep_force get_property stream_end
 
-or this (for MPlayer)
+Requesting the stream_start/stream_end properties signals to
+MPlayer-RC that you want to go to the previous/next track. These
+two properties were arbitrarily chosen (they could be any properties
+that MPlayer-RC itself does not use).
 
-    < run "killall -SIGUSR1 mplayer-rc"
-    > run "killall -SIGUSR2 mplayer-rc"
+If you are using MPV you can do a little better:
 
-and your < and > keys should then work again. With MPV, you can even
-put something like this
+    < playlist_prev ; print_text "Backend: cmdPrev"
+    > playlist_next ; print_text "Backend: cmdNext"
 
-    < playlist_prev ; run killall -SIGUSR1 mplayer-rc
-    > playlist_next ; run killall -SIGUSR2 mplayer-rc
-
-which should then do the right thing whether you run MPV directly or
-as a backend to MPlayer-RC.
+This configuration has the advantage over MPlayer's that it will do
+the right thing whether you run MPV directly or as a backend to
+MPlayer-RC.
 
 Command remapping
 

@@ -41,6 +41,8 @@ type backendData struct {
 	matchPlayingSuffix string
 	matchStartupFail   string
 	matchStartupOK     string
+	matchCmdPrev       string
+	matchCmdNext       string
 
 	cmdFullscreen  string
 	cmdGetProp     string
@@ -77,6 +79,8 @@ var backendMPlayer = backendData{
 	matchPlayingSuffix: ".",
 	matchStartupFail:   "Error ",
 	matchStartupOK:     "MPlayer",
+	matchCmdPrev:       "ANS_stream_start=",
+	matchCmdNext:       "ANS_stream_end=",
 
 	cmdFullscreen:  "pausing_keep_force vo_fullscreen",
 	cmdGetProp:     "pausing_keep_force get_property %s #%s",
@@ -114,6 +118,8 @@ var backendMPV = backendData{
 	matchPlayingSuffix: "",
 	matchStartupFail:   "Error ",
 	matchStartupOK:     "[input",
+	matchCmdPrev:       "Backend: cmdPrev",
+	matchCmdNext:       "Backend: cmdNext",
 
 	cmdFullscreen:  "cycle fullscreen",
 	cmdGetProp:     "", // set by init function

@@ -398,9 +398,13 @@ func addPlaylistEntry(track string) {
 }
 
 // launchBackend starts up the backend with the provided flags in
-// slave mode. It returns the backend's stdin as an io.Writer and
+// slave mode. It returns the backend's stdin as an io.Writer, and the
 // combined stdout/stderr as a <-chan string.
-func launchBackend(flags []string) (io.Writer, <-chan string) {
+//
+// The stdout/stderr is prefiltered by a goroutine that looks for
+// matchCmdPrev/matchCmdNext strings. If it sees them it puts
+// cmdPrev{}/cmdNext{} into commandChan.
+func launchBackend(commandChan chan<- interface{}, flags []string) (io.Writer, <-chan string) {
 	startFlags := append([]string{}, backend.startFlags...)
 	flags = append(startFlags, flags...)
 	cmd := exec.Command(backend.binary, flags...)
@@ -419,7 +423,14 @@ func launchBackend(flags []string) (io.Writer, <-chan string) {
 	go func() {
 		scanner := bufio.NewScanner(out)
 		for scanner.Scan() {
-			outChan <- scanner.Text()
+			switch {
+			case strings.HasPrefix(scanner.Text(), backend.matchCmdPrev):
+				commandChan <- cmdPrev{}
+			case strings.HasPrefix(scanner.Text(), backend.matchCmdNext):
+				commandChan <- cmdNext{}
+			default:
+				outChan <- scanner.Text()
+			}
 		}
 	}()
 	// give a bad command to force MPV to give some output at startup
@@ -921,22 +932,20 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	return buf.String()
 }
 
-// startSelectLoop returns a command channel whose purpose is to
+// startSelectLoop starts the select loop whose purpose is to
 // serialize the execution of commands sent to the backend. In a
 // goroutine it uses select to wait on either a command over the
 // command channel, output from the backend (which is discarded) or a
 // ticker firing (which causes it to check whether the current track
-// has stopped playing). All interactions with backend using the
-// funcXXX functions or manipulations of global state variables are
-// performed from the select loop goroutine, and never from HTTP
-// handlers.
+// has stopped playing). All interactions with the backend (using the
+// funcXXX or getProp functions) or manipulations of global state are
+// performed from the select loop goroutine.
 //
 // When using Unix, startSelectLoop also starts up a signal handler in
-// a goroutine to handle SIGCHLD, SIGUSR1 and SIGUSR2.
-func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
-	commandChan := make(chan interface{})
+// a goroutine to handle SIGCHLD.
+func startSelectLoop(commandChan <-chan interface{}, in io.Writer, outChan <-chan string) {
 	ticker := time.NewTicker(250 * time.Millisecond)
-	startSignalHandler(commandChan)
+	startSignalHandler()
 	go func() {
 		for {
 			select {
@@ -984,7 +993,6 @@ func startSelectLoop(in io.Writer, outChan <-chan string) chan<- interface{} {
 			}
 		}
 	}()
-	return commandChan
 }
 
 // the http server
@@ -1158,9 +1166,11 @@ in the file ~/.mplayer-rc.
 `)
 		os.Exit(1)
 	}
+	// create command channel
+	commandChan := make(chan interface{})
 	// start backend, select loop and web server
-	in, outChan := launchBackend(flags)
-	commandChan := startSelectLoop(in, outChan)
+	in, outChan := launchBackend(commandChan, flags)
+	startSelectLoop(commandChan, in, outChan)
 	commandChan <- cmdPlay{id: -1} // initial play cmd
 	startWebServer(commandChan, password, port)
 }
