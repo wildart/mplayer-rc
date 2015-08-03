@@ -81,7 +81,7 @@
 // 
 // ~/.mplayer-rc - configuration file
 // 
-// Notes
+// Playlists
 // 
 // Files and URLs are not passed through to the backend player as command
 // line arguments but are instead retained by MPlayer-RC since they are
@@ -95,42 +95,11 @@
 // the -playlist flag and is parsed instead by MPlayer-RC, whose parsing
 // is less sophisticated.
 // 
-// If the -remap-commands flag is given to MPlayer-RC or
-// remap-commands=yes is set in ~/.mplayer-rc then some buttons within
-// Android-VLC-Remote are repurposed to be more useful:
-// 
-//     • The "Audio track" button is repurposed to cycle through OSD modes.
-// 
-//     • The "Subtitle track" button is repurposed to rewind by 10 seconds.
-// 
-//     • The "Aspect ratio" button is repurposed to fast forward by 10 seconds.
-// 
-// The primary reason for remapping is to have an easy way to quickly
-// fast forward and rewind when Android-VLC-Remote is used in portrait
-// mode on a small screen. The alternative otherwise is
-// forwarding/rewinding using the progress slider which is quite fiddly.
-// 
-// The following features of Android-VLC-Remote are working:
-// 
-//     • Playing tab: All features (play, pause, stop, forward, back,
-// loop, repeat, volume, shuffle, fullscreen, aspect toggle etc).
-// 
-//     • Playlist tab: Selecting tracks works as normal.
-// 
-// The following features of Android-VLC-Remote do not work:
-// 
-//     • Library tab.
-// 
-//     • DVD tab.
-// 
-//     • Metadata: The metadata passed through to the information box is
-// just the filename (as "title").
-// 
 // Signals
 // 
 // Since MPlayer-RC takes handling of the playlist away from the backend,
-// the < and > keys (next/previous playlist entry) stop working since as
-// far as the backend is concerned there is just one playlist
+// the < and > keyboard keys (next/previous playlist entry) stop working
+// since as far as the backend is concerned there is just one playlist
 // entry. However, it is possible to work around this as follows:
 // 
 // When running on a Unix system, MPlayer-RC responds to SIGUSR1 and
@@ -147,6 +116,41 @@
 //    > run "killall -SIGUSR2 mplayer-rc"
 // 
 // and your < and > keys should then work again.
+// 
+// Command remapping
+// 
+// If the -remap-commands flag is given to MPlayer-RC or
+// remap-commands=yes is set in ~/.mplayer-rc then some buttons within
+// Android-VLC-Remote are repurposed to be more useful:
+// 
+//     • The "Audio track" button is repurposed to cycle through OSD modes.
+// 
+//     • The "Subtitle track" button is repurposed to rewind by 10 seconds.
+// 
+//     • The "Aspect ratio" button is repurposed to fast forward by 10 seconds.
+// 
+// The primary reason for remapping is to have an easy way to quickly
+// fast forward and rewind when Android-VLC-Remote is used in portrait
+// mode on a small screen. The alternative otherwise is
+// forwarding/rewinding using the progress slider which is quite fiddly.
+// 
+// Status
+// 
+// The following features of Android-VLC-Remote are working:
+// 
+//     • Playing tab: All features (play, pause, stop, forward, back,
+// loop, repeat, volume, shuffle, fullscreen, aspect toggle etc).
+// 
+//     • Playlist tab: Selecting tracks works as normal.
+// 
+// The following features of Android-VLC-Remote do not work:
+// 
+//     • Library tab.
+// 
+//     • DVD tab.
+// 
+//     • Metadata: The metadata passed through to the information box is
+// just the filename (as "title").
 // 
 // See also
 // 
