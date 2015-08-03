@@ -130,12 +130,12 @@
 \&Since MPlayer-RC takes handling of the playlist away from the backend,
 \&the < and > keyboard keys (next/previous playlist entry) stop working
 \&since as far as the backend is concerned there is just one playlist
-\&entry. However, it is possible to work around this as follows:
+\&entry, the currently playing track. However, it is possible to work
+\&around this on a Unix system as follows:
 
-\&When running on a Unix system, MPlayer-RC responds to SIGUSR1 and
-\&SIGUSR2 signals by executing previous track and next track
-\&commands. This allows you to put something like this in your
-\&input.conf (for MPV)
+\&MPlayer-RC responds to SIGUSR1 and SIGUSR2 signals by executing
+\&previous track and next track commands. This allows you to put
+\&something like this in your input.conf (for MPV)
 
 .ft CW
 .nf
@@ -157,7 +157,20 @@
 .fi
 .ft
 
-\&and your < and > keys should then work again.
+\&and your < and > keys should then work again. With MPV, you can even
+\&put something like this
+
+.ft CW
+.nf
+.RS 4
+\&< playlist_prev ; run killall \-SIGUSR1 mplayer-rc
+\&> playlist_next ; run killall \-SIGUSR2 mplayer-rc
+.RE
+.fi
+.ft
+
+\&which should then do the right thing whether you run MPV directly or
+\&as a backend to MPlayer-RC.
 
 .SH COMMAND REMAPPING
 \&If the \-remap-commands flag is given to MPlayer-RC or
