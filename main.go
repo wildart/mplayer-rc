@@ -1117,7 +1117,7 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				}
 			default:
 				// output status.xml
-				replyChan := make(chan string)
+				replyChan := make(chan string, 1)
 				commandChan <- cmdGetStatusXML{replyChan: replyChan}
 				io.WriteString(w, <-replyChan)
 			}
@@ -1129,7 +1129,7 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 				return
 			}
 			// output playlist.xml
-			replyChan := make(chan string)
+			replyChan := make(chan string, 1)
 			commandChan <- cmdGetPlaylistXML{replyChan: replyChan}
 			io.WriteString(w, <-replyChan)
 		})
