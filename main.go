@@ -1171,7 +1171,7 @@ in the file ~/.mplayer-rc.
 		os.Exit(1)
 	}
 	// create command channel
-	commandChan := make(chan interface{})
+	commandChan := make(chan interface{}, 1000)
 	// start backend, select loop and web server
 	in, outChan := launchBackend(commandChan, flags)
 	startSelectLoop(commandChan, in, outChan)
