@@ -107,10 +107,9 @@ var backendMPlayer = backendData{
 }
 
 var backendMPV = backendData{
-	binary: "mpv",
-	startFlags: []string{
-		"--idle", "--input-file=/dev/stdin", "--quiet", "--input-terminal=no"},
-	volumeMax: 0, // set by init function
+	binary:     "mpv",
+	startFlags: []string{}, // set by init function
+	volumeMax:  0,          // set by init function
 
 	matchNeedsParam:    "Error parsing ",
 	matchPlayingOK:     []string{"[stream] ", " (+)"},
@@ -133,11 +132,11 @@ var backendMPV = backendData{
 	cmdStop:        "stop",
 	cmdSubSelect:   "cycle sid",
 	cmdSwitchAudio: "cycle aid",
-	cmdSwitchRatio: "set video-aspect %s",
+	cmdSwitchRatio: "", // set by init function
 	cmdVolumeAbs:   "set volume %d",
 	cmdVolumeRel:   "add volume %d",
 
-	propAspect:     "video-aspect",
+	propAspect:     "", // set by init function
 	propFilename:   "filename",
 	propFullscreen: "fullscreen",
 	propLength:     "", // set by init function
@@ -150,11 +149,17 @@ var backendMPV = backendData{
 func init() {
 	printText := "print_text"
 	length := "length"
+	aspect := "aspect"
 	volumeMax := 100
+	noConsoleControls := "--consolecontrols=no"
 	defer func() {
 		backendMPV.cmdGetProp = printText + " ANS_%s=${%s}"
 		backendMPV.propLength = length
+		backendMPV.propAspect = aspect
+		backendMPV.cmdSwitchRatio = "set " + aspect + " %s"
 		backendMPV.volumeMax = volumeMax
+		backendMPV.startFlags = []string{
+			"--idle", "--input-file=/dev/stdin", "--quiet", noConsoleControls}
 	}()
 	runMPV := func(in io.Reader, flags ...string) *bufio.Scanner {
 		cmd := exec.Command(backendMPV.binary, flags...)
@@ -176,11 +181,14 @@ func init() {
 			printText = "print-text"
 		}
 	}
-	// determine length
+	// determine length and aspect
 	scanner = runMPV(nil, "--list-properties")
 	for scanner.Scan() {
 		if scanner.Text() == " duration" {
 			length = "duration"
+		}
+		if scanner.Text() == " video-aspect" {
+			aspect = "video-aspect"
 		}
 	}
 	// determine volumeMax
@@ -199,6 +207,30 @@ func init() {
 					volumeMax = int(f)
 				}
 			}
+		}
+	}
+	// determine noConsoleControls
+	scanner = runMPV(nil, "--input-terminal=no")
+	good := true
+	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), "Error ") {
+			good = false
+			break
+		}
+	}
+	if good {
+		noConsoleControls = "--input-terminal=no"
+	} else {
+		scanner = runMPV(nil, "--input-console=no")
+		good = true
+		for scanner.Scan() {
+			if strings.HasPrefix(scanner.Text(), "Error ") {
+				good = false
+				break
+			}
+		}
+		if good {
+			noConsoleControls = "--input-console=no"
 		}
 	}
 }
