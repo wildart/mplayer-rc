@@ -150,16 +150,16 @@ func init() {
 	printText := "print_text"
 	length := "length"
 	aspect := "aspect"
-	volumeMax := 100
 	noConsoleControls := "--consolecontrols=no"
+	volumeMax := 100
 	defer func() {
 		backendMPV.cmdGetProp = printText + " ANS_%s=${%s}"
 		backendMPV.propLength = length
 		backendMPV.propAspect = aspect
 		backendMPV.cmdSwitchRatio = "set " + aspect + " %s"
-		backendMPV.volumeMax = volumeMax
 		backendMPV.startFlags = []string{
 			"--idle", "--input-file=/dev/stdin", "--quiet", noConsoleControls}
+		backendMPV.volumeMax = volumeMax
 	}()
 	runMPV := func(in io.Reader, flags ...string) *bufio.Scanner {
 		cmd := exec.Command(backendMPV.binary, flags...)
@@ -191,6 +191,16 @@ func init() {
 			aspect = "video-aspect"
 		}
 	}
+	// determine noConsoleControls
+	scanner = runMPV(nil, "--list-options")
+	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), " --input-terminal ") {
+			noConsoleControls = "--input-terminal=no"
+		}
+		if strings.HasPrefix(scanner.Text(), " --input-console ") {
+			noConsoleControls = "--input-console=no"
+		}
+	}
 	// determine volumeMax
 	in := strings.NewReader(
 		printText + " SOFTVOLMAX_${options/softvol-max}\nquit\n")
@@ -207,30 +217,6 @@ func init() {
 					volumeMax = int(f)
 				}
 			}
-		}
-	}
-	// determine noConsoleControls
-	scanner = runMPV(nil, "--input-terminal=no")
-	good := true
-	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "Error ") {
-			good = false
-			break
-		}
-	}
-	if good {
-		noConsoleControls = "--input-terminal=no"
-	} else {
-		scanner = runMPV(nil, "--input-console=no")
-		good = true
-		for scanner.Scan() {
-			if strings.HasPrefix(scanner.Text(), "Error ") {
-				good = false
-				break
-			}
-		}
-		if good {
-			noConsoleControls = "--input-console=no"
 		}
 	}
 }
