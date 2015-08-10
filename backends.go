@@ -150,6 +150,7 @@ func init() {
 	printText := "print_text"
 	length := "length"
 	aspect := "aspect"
+	flags := []string{"--idle", "--input-file=/dev/stdin", "--quiet"}
 	noConsoleControls := "--consolecontrols=no"
 	volumeMax := 100
 	defer func() {
@@ -157,8 +158,7 @@ func init() {
 		backendMPV.propLength = length
 		backendMPV.propAspect = aspect
 		backendMPV.cmdSwitchRatio = "set " + aspect + " %s"
-		backendMPV.startFlags = []string{
-			"--idle", "--input-file=/dev/stdin", "--quiet", noConsoleControls}
+		backendMPV.startFlags = append(flags, noConsoleControls)
 		backendMPV.volumeMax = volumeMax
 	}()
 	runMPV := func(in io.Reader, flags ...string) *bufio.Scanner {
@@ -204,8 +204,9 @@ func init() {
 	// determine volumeMax
 	in := strings.NewReader(
 		printText + " SOFTVOLMAX_${options/softvol-max}\nquit\n")
-	flags := append([]string{"--volume=101"}, backendMPV.startFlags...)
-	scanner = runMPV(in, flags...)
+	startFlags := append(
+		[]string{"--volume=101"}, append(flags, noConsoleControls)...)
+	scanner = runMPV(in, startFlags...)
 	for scanner.Scan() {
 		// Note that --volume=101 purposely causes MPV < 0.10.x to
 		// print an error and not the value of softvol-max. Hence for
