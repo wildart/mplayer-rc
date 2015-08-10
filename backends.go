@@ -85,7 +85,7 @@ var backendMPlayer = backendData{
 	cmdFullscreen:  "pausing_keep_force vo_fullscreen",
 	cmdGetProp:     "pausing_keep_force get_property %s #%s",
 	cmdLoadfile:    "loadfile %s",
-	cmdNoop:        "mute 0",
+	cmdNoop:        "pausing_keep_force loop -1",
 	cmdOSD:         "pausing_keep_force osd",
 	cmdPause:       "pause",
 	cmdSeekAbs:     "pausing_keep_force seek %d 2",
