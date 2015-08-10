@@ -24,6 +24,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"os/exec"
 	"strconv"
@@ -68,6 +69,8 @@ type backendData struct {
 	propVolume     string
 }
 
+// MPlayer backend
+
 var backendMPlayer = backendData{
 	binary:     "mplayer",
 	startFlags: []string{"-idle", "-slave", "-quiet", "-noconsolecontrols"},
@@ -106,10 +109,12 @@ var backendMPlayer = backendData{
 	propVolume:     "volume",
 }
 
+// MPV Backend
+
 var backendMPV = backendData{
 	binary:     "mpv",
-	startFlags: []string{}, // set by init function
-	volumeMax:  0,          // set by init function
+	startFlags: mpvStartFlags,
+	volumeMax:  mpvVolumeMax,
 
 	matchNeedsParam:    "Error parsing ",
 	matchPlayingOK:     []string{"[stream] ", " (+)"},
@@ -121,7 +126,7 @@ var backendMPV = backendData{
 	matchCmdNext:       "Backend: cmdNext",
 
 	cmdFullscreen:  "cycle fullscreen",
-	cmdGetProp:     "", // set by init function
+	cmdGetProp:     mpvCmdGetProp,
 	cmdLoadfile:    "loadfile %s",
 	cmdNoop:        "ignore",
 	cmdOSD:         "osd",
@@ -132,87 +137,102 @@ var backendMPV = backendData{
 	cmdStop:        "stop",
 	cmdSubSelect:   "cycle sid",
 	cmdSwitchAudio: "cycle aid",
-	cmdSwitchRatio: "", // set by init function
+	cmdSwitchRatio: mpvCmdSwitchRatio,
 	cmdVolumeAbs:   "set volume %d",
 	cmdVolumeRel:   "add volume %d",
 
-	propAspect:     "", // set by init function
+	propAspect:     mpvPropAspect,
 	propFilename:   "filename",
 	propFullscreen: "fullscreen",
-	propLength:     "", // set by init function
+	propLength:     mpvPropLength,
 	propTimePos:    "time-pos",
 	propVolume:     "volume",
 }
 
-// init sets a few fields in backendMPV that vary by MPV version. We
-// query the MPV that is installed to determine which to use.
-func init() {
-	printText := "print_text"
-	length := "length"
-	aspect := "aspect"
-	flags := []string{"--idle", "--input-file=/dev/stdin", "--quiet"}
-	noConsoleControls := "--consolecontrols=no"
-	volumeMax := 100
-	defer func() {
-		backendMPV.cmdGetProp = printText + " ANS_%s=${%s}"
-		backendMPV.propLength = length
-		backendMPV.propAspect = aspect
-		backendMPV.cmdSwitchRatio = "set " + aspect + " %s"
-		backendMPV.startFlags = append(flags, noConsoleControls)
-		backendMPV.volumeMax = volumeMax
-	}()
-	runMPV := func(in io.Reader, flags ...string) *bufio.Scanner {
-		cmd := exec.Command(backendMPV.binary, flags...)
-		out := new(bytes.Buffer)
-		cmd.Stdin = in
-		cmd.Stdout = out
-		_ = cmd.Run()
-		return bufio.NewScanner(out)
-	}
-	// return if no mpv binary
-	_, err := exec.LookPath("mpv")
+// MPV backend helpers
+
+func runMPV(in io.Reader, flags ...string) (*bufio.Scanner, error) {
+	cmd := exec.Command("mpv", flags...)
+	out := new(bytes.Buffer)
+	cmd.Stdin = in
+	cmd.Stdout = out
+	err := cmd.Run()
+	return bufio.NewScanner(out), err
+}
+
+var mpvOptions = func() map[string]bool {
+	options := map[string]bool{}
+	scanner, err := runMPV(nil, "--list-options")
 	if err != nil {
-		return
+		return options
 	}
-	// determine printText
-	scanner := runMPV(nil, "--input-cmdlist")
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), "print-text ") {
-			printText = "print-text"
+		if strings.HasPrefix(scanner.Text(), " -") {
+			options[strings.Split(scanner.Text(), " ")[1]] = true
 		}
 	}
-	// determine length and aspect
-	scanner = runMPV(nil, "--list-properties")
+	return options
+}()
+
+var mpvProperties = func() map[string]bool {
+	properties := map[string]bool{}
+	scanner, err := runMPV(nil, "--list-properties")
+	if err != nil {
+		return properties
+	}
 	for scanner.Scan() {
-		if scanner.Text() == " duration" {
-			length = "duration"
-		}
-		if scanner.Text() == " video-aspect" {
-			aspect = "video-aspect"
+		if strings.HasPrefix(scanner.Text(), " ") {
+			properties[strings.Split(scanner.Text(), " ")[1]] = true
 		}
 	}
-	// determine noConsoleControls
-	scanner = runMPV(nil, "--list-options")
+	return properties
+}()
+
+var mpvInputCmds = func() map[string]bool {
+	inputCmds := map[string]bool{}
+	scanner, err := runMPV(nil, "--input-cmdlist")
+	if err != nil {
+		return inputCmds
+	}
 	for scanner.Scan() {
-		if strings.HasPrefix(scanner.Text(), " --input-terminal ") {
-			noConsoleControls = "--input-terminal=no"
-		}
-		if strings.HasPrefix(scanner.Text(), " --input-console ") {
-			noConsoleControls = "--input-console=no"
-		}
+		inputCmds[strings.Split(scanner.Text(), " ")[0]] = true
 	}
-	// determine volumeMax
-	in := strings.NewReader(
-		printText + " SOFTVOLMAX_${options/softvol-max}\nquit\n")
-	startFlags := append(
-		[]string{"--volume=101"}, append(flags, noConsoleControls)...)
-	scanner = runMPV(in, startFlags...)
+	return inputCmds
+}()
+
+// MPV backend computed fields
+
+var mpvStartFlags = func() []string {
+	startFlags := []string{
+		"--idle", "--input-file=/dev/stdin", "--quiet",
+		"--consolecontrols=no"}
+	if mpvOptions["--input-console"] {
+		flags := startFlags[:len(startFlags)-1]
+		startFlags = append(flags, "--input-console=no")
+	}
+	if mpvOptions["--input-terminal"] {
+		flags := startFlags[:len(startFlags)-1]
+		startFlags = append(flags, "--input-terminal=no")
+	}
+	return startFlags
+}()
+
+var mpvVolumeMax = func() int {
+	volumeMax := 100
+	in := strings.NewReader(fmt.Sprintf(
+		mpvCmdGetProp+"\nquit\n",
+		"options/softvol-max", "options/softvol-max"))
+	startFlags := append([]string{"--volume=101"}, mpvStartFlags...)
+	scanner, err := runMPV(in, startFlags...)
+	if err != nil {
+		return volumeMax
+	}
 	for scanner.Scan() {
 		// Note that --volume=101 purposely causes MPV < 0.10.x to
 		// print an error and not the value of softvol-max. Hence for
 		// MPV < 0.10.x, volumeMax remains at 100 as it should.
-		if strings.HasPrefix(scanner.Text(), "SOFTVOLMAX_") {
-			max := scanner.Text()[len("SOFTVOLMAX_"):]
+		if strings.HasPrefix(scanner.Text(), "ANS_options/softvol-max=") {
+			max := scanner.Text()[len("ANS_options/softvol-max="):]
 			if f, err := strconv.ParseFloat(max, 64); err == nil {
 				if int(f) > 0 {
 					volumeMax = int(f)
@@ -220,4 +240,31 @@ func init() {
 			}
 		}
 	}
-}
+	return volumeMax
+}()
+
+var mpvCmdGetProp = func() string {
+	cmdGetProp := "print_text ANS_%s=${%s}"
+	if mpvInputCmds["print-text"] {
+		cmdGetProp = "print-text ANS_%s=${%s}"
+	}
+	return cmdGetProp
+}()
+
+var mpvCmdSwitchRatio = "set " + mpvPropAspect + " %s"
+
+var mpvPropAspect = func() string {
+	propAspect := "aspect"
+	if mpvProperties["video-aspect"] {
+		propAspect = "video-aspect"
+	}
+	return propAspect
+}()
+
+var mpvPropLength = func() string {
+	propLength := "length"
+	if mpvProperties["duration"] {
+		propLength = "duration"
+	}
+	return propLength
+}()
