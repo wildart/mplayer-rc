@@ -29,6 +29,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type backendData struct {
@@ -160,7 +161,7 @@ func runMPV(in io.Reader, flags ...string) (*bufio.Scanner, error) {
 	return bufio.NewScanner(out), err
 }
 
-var mpvOptions = func() map[string]bool {
+func mpvOptions() map[string]bool {
 	options := map[string]bool{}
 	scanner, err := runMPV(nil, "--list-options")
 	if err != nil {
@@ -172,9 +173,9 @@ var mpvOptions = func() map[string]bool {
 		}
 	}
 	return options
-}()
+}
 
-var mpvProperties = func() map[string]bool {
+func mpvProperties() map[string]bool {
 	properties := map[string]bool{}
 	scanner, err := runMPV(nil, "--list-properties")
 	if err != nil {
@@ -186,9 +187,9 @@ var mpvProperties = func() map[string]bool {
 		}
 	}
 	return properties
-}()
+}
 
-var mpvInputCmds = func() map[string]bool {
+func mpvInputCmds() map[string]bool {
 	inputCmds := map[string]bool{}
 	scanner, err := runMPV(nil, "--input-cmdlist")
 	if err != nil {
@@ -198,6 +199,34 @@ var mpvInputCmds = func() map[string]bool {
 		inputCmds[strings.Split(scanner.Text(), " ")[0]] = true
 	}
 	return inputCmds
+}
+
+var mpvData = func() struct {
+	options    map[string]bool
+	properties map[string]bool
+	inputCmds  map[string]bool
+} {
+	var data struct {
+		options    map[string]bool
+		properties map[string]bool
+		inputCmds  map[string]bool
+	}
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		data.options = mpvOptions()
+		wg.Done()
+	}()
+	go func() {
+		data.properties = mpvProperties()
+		wg.Done()
+	}()
+	go func() {
+		data.inputCmds = mpvInputCmds()
+		wg.Done()
+	}()
+	wg.Wait()
+	return data
 }()
 
 // MPV backend computed fields
@@ -206,11 +235,11 @@ var mpvStartFlags = func() []string {
 	startFlags := []string{
 		"--idle", "--input-file=/dev/stdin", "--quiet",
 		"--consolecontrols=no"}
-	if mpvOptions["--input-console"] {
+	if mpvData.options["--input-console"] {
 		flags := startFlags[:len(startFlags)-1]
 		startFlags = append(flags, "--input-console=no")
 	}
-	if mpvOptions["--input-terminal"] {
+	if mpvData.options["--input-terminal"] {
 		flags := startFlags[:len(startFlags)-1]
 		startFlags = append(flags, "--input-terminal=no")
 	}
@@ -245,7 +274,7 @@ var mpvVolumeMax = func() int {
 
 var mpvCmdGetProp = func() string {
 	cmdGetProp := "print_text ANS_%s=${%s}"
-	if mpvInputCmds["print-text"] {
+	if mpvData.inputCmds["print-text"] {
 		cmdGetProp = "print-text ANS_%s=${%s}"
 	}
 	return cmdGetProp
@@ -255,7 +284,7 @@ var mpvCmdSwitchRatio = "set " + mpvPropAspect + " %s"
 
 var mpvPropAspect = func() string {
 	propAspect := "aspect"
-	if mpvProperties["video-aspect"] {
+	if mpvData.properties["video-aspect"] {
 		propAspect = "video-aspect"
 	}
 	return propAspect
@@ -263,7 +292,7 @@ var mpvPropAspect = func() string {
 
 var mpvPropLength = func() string {
 	propLength := "length"
-	if mpvProperties["duration"] {
+	if mpvData.properties["duration"] {
 		propLength = "duration"
 	}
 	return propLength
