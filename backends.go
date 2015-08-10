@@ -109,7 +109,7 @@ var backendMPlayer = backendData{
 	propVolume:     "volume",
 }
 
-// MPV Backend
+// MPV backend
 
 var backendMPV = backendData{
 	binary:     "mpv",
