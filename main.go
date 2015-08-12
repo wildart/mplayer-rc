@@ -115,28 +115,29 @@ func processConfig() {
 	}
 	b, err := ioutil.ReadFile(
 		filepath.Join(home, ".mplayer-rc"))
-	if err == nil {
-		scanner := bufio.NewScanner(bytes.NewBuffer(b))
-		for scanner.Scan() {
-			if strings.HasPrefix(scanner.Text(), "backend=") {
-				p := scanner.Text()[len("backend="):]
-				confBackend = trimTrailingSpace(p)
-			}
-			if strings.HasPrefix(scanner.Text(), "password=") {
-				p := scanner.Text()[len("password="):]
-				confPassword = trimTrailingSpace(p)
-			}
-			if strings.HasPrefix(scanner.Text(), "port=") {
-				p := scanner.Text()[len("port="):]
-				confPort = trimTrailingSpace(p)
-			}
-			if strings.HasPrefix(scanner.Text(), "remap-commands=") {
-				p := scanner.Text()[len("remap-commands="):]
-				p = strings.ToLower(trimTrailingSpace(p))
-				switch p {
-				case "yes", "1", "true":
-					confRemapCommands = true
-				}
+	if err != nil {
+		return
+	}
+	scanner := bufio.NewScanner(bytes.NewBuffer(b))
+	for scanner.Scan() {
+		if strings.HasPrefix(scanner.Text(), "backend=") {
+			p := scanner.Text()[len("backend="):]
+			confBackend = trimTrailingSpace(p)
+		}
+		if strings.HasPrefix(scanner.Text(), "password=") {
+			p := scanner.Text()[len("password="):]
+			confPassword = trimTrailingSpace(p)
+		}
+		if strings.HasPrefix(scanner.Text(), "port=") {
+			p := scanner.Text()[len("port="):]
+			confPort = trimTrailingSpace(p)
+		}
+		if strings.HasPrefix(scanner.Text(), "remap-commands=") {
+			p := scanner.Text()[len("remap-commands="):]
+			p = strings.ToLower(trimTrailingSpace(p))
+			switch p {
+			case "yes", "1", "true":
+				confRemapCommands = true
 			}
 		}
 	}
