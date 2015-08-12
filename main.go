@@ -194,8 +194,7 @@ func needsParameter(flag string) bool {
 	if !scanner.Scan() {
 		return false
 	}
-	line1 := scanner.Text()
-	if strings.HasPrefix(line1, backend.matchNeedsParam) {
+	if strings.HasPrefix(scanner.Text(), backend.matchNeedsParam) {
 		return true
 	}
 	return false
