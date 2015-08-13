@@ -196,7 +196,11 @@ func mpvInputCmds() map[string]bool {
 		return inputCmds
 	}
 	for scanner.Scan() {
-		inputCmds[strings.Split(scanner.Text(), " ")[0]] = true
+		if scanner.Text() != "" {
+			if scanner.Text()[0] >= 'a' && scanner.Text()[0] <= 'z' {
+				inputCmds[strings.Split(scanner.Text(), " ")[0]] = true
+			}
+		}
 	}
 	return inputCmds
 }
