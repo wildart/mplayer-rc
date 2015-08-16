@@ -1161,7 +1161,7 @@ func main() {
 	if password == "" {
 		fmt.Fprint(os.Stderr,
 			`MPlayer-RC needs to have a password which is used to authorize
-Android-VLC-Remote. You can specify the password using the command
+the VLC Remote. You can specify the password using the command
 line flag -password=<pass> or by putting the line
 
   password=<pass>
