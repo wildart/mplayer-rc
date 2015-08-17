@@ -38,7 +38,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -310,7 +309,7 @@ func processFlags(args []string) []string {
 			}} {
 				if len(pl) >= len(s.header) &&
 					strings.ToLower(string(pl[:len(s.header)])) == s.header {
-					log.Fatalf("mplayer-rc: %s\n", s.msg)
+					log.Fatalf("mplayer-rc: %s", s.msg)
 				}
 			}
 			scanner := bufio.NewScanner(bytes.NewBuffer(pl))
@@ -444,7 +443,7 @@ func launchBackend(commandChan chan<- interface{}, flags []string) (io.Writer, <
 		if strings.HasPrefix(line, backend.matchStartupFail) {
 			// backend has failed to parse it's command line or has
 			// otherwise failed to start
-			log.Fatal(errors.New(backend.binary + ": " + line))
+			log.Fatalf("%s: %s", backend.binary, line)
 		}
 		if strings.HasPrefix(line, backend.matchStartupOK) {
 			// all good hopefully...
@@ -1134,7 +1133,7 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 			io.WriteString(w, <-replyChan)
 		})
 	if http.ListenAndServe(":"+port, nil) != nil {
-		log.Fatal(errors.New("failed to start http server"))
+		log.Fatalf("mplayer-rc: failed to start http server")
 	}
 }
 
