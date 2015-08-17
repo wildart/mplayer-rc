@@ -146,12 +146,26 @@ func processConfig() {
 // file and command line flags. It returns the processed os.Args
 func setBackend() []string {
 	args := os.Args
-	// set using args[0]
+	// set a default backend
+	if _, err := exec.LookPath("mpv"); err == nil {
+		backend = &backendMPV
+	}
+	if _, err := exec.LookPath("mplayer"); err == nil {
+		backend = &backendMPlayer
+	}
+	if backend == nil {
+		log.Fatalf("mplayer-rc: cannot find mpv or mplayer binaries")
+	}
+	// set using args[0] if the relevant binary exists
 	switch strings.ToLower(filepath.Base(args[0])) {
 	case "mpv-rc", "mpv-rc.exe":
-		backend = &backendMPV
-	default:
-		backend = &backendMPlayer
+		if _, err := exec.LookPath("mpv"); err == nil {
+			backend = &backendMPV
+		}
+	case "mplayer-rc", "mplayer-rc.exe":
+		if _, err := exec.LookPath("mplayer"); err == nil {
+			backend = &backendMPlayer
+		}
 	}
 	// set using config file
 	switch confBackend {
