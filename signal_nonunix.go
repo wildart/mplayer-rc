@@ -3,7 +3,7 @@
 /*
    Copyright 2015 The MPlayer-RC Authors. See the AUTHORS file at the
    top-level directory of this distribution and at
-   <https://xi2.org/x/mplayer-rc/AUTHORS>.
+   <https://xi2.org/x/mplayer-rc/m/AUTHORS>.
 
    This file is part of MPlayer-RC.
 
