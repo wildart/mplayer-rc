@@ -923,9 +923,8 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	getBool := func(prop string) bool {
 		if get(prop) == "yes" {
 			return true
-		} else {
-			return false
 		}
+		return false
 	}
 	data.Fullscreen = getBool(backend.propFullscreen)
 	data.Volume = getInt(backend.propVolume)
