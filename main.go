@@ -830,7 +830,7 @@ const playlistTmplTxt = `
 <node ro="ro" name="Playlist" id="2">
 {{range .}}
 <leaf duration="-1" ro="rw" name="{{.Name}}"
- id="{{.Id}}" {{if .Current}}current="current"{{end}}></leaf>
+ id="{{.ID}}" {{if .Current}}current="current"{{end}}></leaf>
 {{end}}
 </node>
 <node ro="ro" name="Media Library" id="3"></node>
@@ -844,7 +844,7 @@ var playlistTmpl = template.Must(
 func funcGetPlaylistXML() string {
 	data := []struct {
 		Name    string
-		Id      int
+		ID      int
 		Current bool
 	}{}
 	for i := range playlist {
@@ -856,9 +856,9 @@ func funcGetPlaylistXML() string {
 		}
 		data = append(data, struct {
 			Name    string
-			Id      int
+			ID      int
 			Current bool
-		}{Name: name, Id: id, Current: current})
+		}{Name: name, ID: id, Current: current})
 	}
 	buf := new(bytes.Buffer)
 	buf.WriteString(`<?xml version="1.0" encoding="utf-8" standalone="yes" ?>`)
