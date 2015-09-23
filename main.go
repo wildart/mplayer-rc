@@ -359,7 +359,7 @@ func processFlags(args []string) []string {
 	for _, f := range tracks {
 		addPlaylistEntry(f)
 	}
-	if doShuffle == true {
+	if doShuffle {
 		playpos = rand.Intn(len(playlist))
 		funcShuffle()
 	}
@@ -1160,7 +1160,7 @@ func main() {
 	remapCommands = confRemapCommands
 	password, port := confPassword, confPort
 	// override with flags if appropriate
-	if flagRemapCommands == true {
+	if flagRemapCommands {
 		remapCommands = true
 	}
 	if flagPassword != "" {
