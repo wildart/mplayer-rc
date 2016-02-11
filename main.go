@@ -385,7 +385,7 @@ var (
 	loop   bool
 	repeat bool
 	// the stopped state. The backend can briefly transition into
-	// "stopped" state inbetween tracks when we are not really
+	// "stopped" state in-between tracks when we are not really
 	// stopped, so this variable allows us to keep a true idea of
 	// whether the backend is stopped or not.
 	stopped bool
