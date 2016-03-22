@@ -766,7 +766,8 @@ func funcAspect(in io.Writer, outChan <-chan string) {
 		funcSeek(in, +10, 0)
 	} else {
 		if f, err := strconv.ParseFloat(
-			getProp(in, outChan, backend.propAspect), 64); err == nil {
+			strings.Split(getProp(in, outChan, backend.propAspect), " ")[0],
+			64); err == nil {
 			// cycle between 4:3, 16:9 and 2.35:1
 			switch {
 			case f < 1.5555:
