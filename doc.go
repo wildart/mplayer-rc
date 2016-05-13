@@ -7,7 +7,7 @@
 // 
 // Usage:
 // 
-//   mplayer-rc [mplayer-rc or mplayer/mpv options] [files/URLs]
+//   mplayer-rc [mplayer-rc or mplayer/mpv flags] [files/URLs]
 // 
 // Description
 // 

@@ -161,18 +161,18 @@ func runMPV(in io.Reader, flags ...string) (*bufio.Scanner, error) {
 	return bufio.NewScanner(out), err
 }
 
-func mpvOptions() map[string]struct{} {
-	options := map[string]struct{}{}
+func mpvFlags() map[string]struct{} {
+	flags := map[string]struct{}{}
 	scanner, err := runMPV(nil, "--list-options")
 	if err != nil {
-		return options
+		return flags
 	}
 	for scanner.Scan() {
 		if strings.HasPrefix(scanner.Text(), " -") {
-			options[strings.Split(scanner.Text(), " ")[1]] = struct{}{}
+			flags[strings.Split(scanner.Text(), " ")[1]] = struct{}{}
 		}
 	}
-	return options
+	return flags
 }
 
 func mpvProperties() map[string]struct{} {
@@ -206,19 +206,19 @@ func mpvInputCmds() map[string]struct{} {
 }
 
 var mpvData = func() struct {
-	options    map[string]struct{}
+	flags      map[string]struct{}
 	properties map[string]struct{}
 	inputCmds  map[string]struct{}
 } {
 	var data struct {
-		options    map[string]struct{}
+		flags      map[string]struct{}
 		properties map[string]struct{}
 		inputCmds  map[string]struct{}
 	}
 	var wg sync.WaitGroup
 	wg.Add(3)
 	go func() {
-		data.options = mpvOptions()
+		data.flags = mpvFlags()
 		wg.Done()
 	}()
 	go func() {
@@ -239,11 +239,11 @@ var mpvStartFlags = func() []string {
 	startFlags := []string{
 		"--idle", "--input-file=/dev/stdin", "--quiet",
 		"--consolecontrols=no"}
-	if _, ok := mpvData.options["--input-console"]; ok {
+	if _, ok := mpvData.flags["--input-console"]; ok {
 		flags := startFlags[:len(startFlags)-1]
 		startFlags = append(flags, "--input-console=no")
 	}
-	if _, ok := mpvData.options["--input-terminal"]; ok {
+	if _, ok := mpvData.flags["--input-terminal"]; ok {
 		flags := startFlags[:len(startFlags)-1]
 		startFlags = append(flags, "--input-terminal=no")
 	}
