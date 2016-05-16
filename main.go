@@ -226,7 +226,7 @@ func processFlags(args []string) []string {
 
 	printUsage := func() {
 		fmt.Fprintf(os.Stderr,
-			"usage: %s [mplayer-rc or mplayer/mpv flags] [files/URLs]\n",
+			"Usage: %s [mplayer-rc or mplayer/mpv flags] [files/URLs]\n",
 			filepath.Base(args[0]))
 		// Go 1.5+ package flag compatible format
 		fmt.Fprintf(os.Stderr, "  -V\t")
