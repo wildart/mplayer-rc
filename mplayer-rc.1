@@ -1,27 +1,27 @@
 .\" This file was automatically generated using Genman.
 .\" Do not edit.
 .\"
-.TH MPLAYER\-RC 1 "2016-05-13"
+.TH "MPLAYER\-RC" 1 "2016-05-19"
 
-.SH NAME
+.SH "NAME"
 \&mplayer\-rc \- MPlayer/MPV wrapper enabling use of a VLC remote
 
-.SH SYNOPSIS
+.SH "SYNOPSIS"
 .B mplayer\-rc
 \&[mplayer\-rc or mplayer/mpv flags] [files/URLs]
 
-.SH DESCRIPTION
+.SH "DESCRIPTION"
 \&MPlayer-RC enables remote control of the MPlayer, MPlayer2 and MPV
 \&command line media players from a VLC remote (i.e. an application
 \&written to use VLC's HTTP control interface). It is designed to work
 \&specifically with the Android application Android-VLC-Remote which can
 \&be obtained from F-Droid:
 
-\&    <https://f-droid.org/repository/browse/?fdid=org.peterbaldwin.client.android.vlcremote>
+\&    https://f-droid.org/repository/browse/?fdid=org.peterbaldwin.client.android.vlcremote
 
 \&or directly from the Android-VLC-Remote author:
 
-\&    <https://code.google.com/p/android-vlc-remote>
+\&    https://code.google.com/p/android-vlc-remote
 
 \&Other applications speaking the VLC HTTP protocol may work but are not
 \&tested. VLC itself is not required since MPlayer-RC acts as a
@@ -29,7 +29,7 @@
 \&backend player and returning responses back. The VLC HTTP protocol is
 \&described here:
 
-\&    <https://wiki.videolan.org/VLC_HTTP_requests>
+\&    https://wiki.videolan.org/VLC_HTTP_requests
 
 \&To use MPlayer-RC, invoke it in the same way you would invoke
 \&MPlayer. For example:
@@ -93,27 +93,28 @@
 
 \&in ~/.mplayer-rc.
 
-.SH OPTIONS
-.TP 8
+.SH "OPTIONS"
+.TP
 .B \-V
 \&show version, license and further information
-.TP 8
+.TP
 .BI \-backend " backend"
 \&set backend as the backend player (default mplayer)
-.TP 8
+.TP
 .BI \-password " pass"
 \&use pass as the VLC remote password
-.TP 8
+.TP
 .BI \-port " port"
 \&use port as the listening port for VLC commands (default 8080)
-.TP 8
+.TP
 .B \-remap\-commands
 \&use alternate actions for some VLC commands
+.PP
 
-.SH FILES
+.SH "FILES"
 \&~/.mplayer-rc \- configuration file
 
-.SH PLAYLISTS
+.SH "PLAYLISTS"
 \&Files and URLs are not passed through to the backend player as command
 \&line arguments but are instead retained by MPlayer-RC since they are
 \&needed to implement shuffle. The backend is started by MPlayer-RC in
@@ -164,7 +165,7 @@
 \&the right thing whether you run MPV directly or as a backend to
 \&MPlayer-RC.
 
-.SH COMMAND REMAPPING
+.SH "COMMAND REMAPPING"
 \&If the \-remap-commands flag is given to MPlayer-RC or
 \&remap-commands=yes is set in ~/.mplayer-rc then some buttons within
 \&Android-VLC-Remote are repurposed to be more useful:
@@ -180,7 +181,7 @@
 \&mode on a small screen. The alternative otherwise is
 \&forwarding/rewinding using the progress slider which is quite fiddly.
 
-.SH STATUS
+.SH "STATUS"
 \&The following features of Android-VLC-Remote are working:
 
 \&    • Playing tab: All features (play, pause, stop, forward, back,
@@ -197,6 +198,6 @@
 \&    • Metadata: The metadata passed through to the information box is
 \&just the filename (as "title").
 
-.SH SEE ALSO
+.SH "SEE ALSO"
 \&mplayer(1), mpv(1)
 

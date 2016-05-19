@@ -65,7 +65,7 @@
 // 
 // Options
 // 
-// The following flags are available:
+// Available flags:
 // 
 //   -V    show version, license and further information
 //   -backend backend
