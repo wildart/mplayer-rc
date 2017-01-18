@@ -1,0 +1,5 @@
+package: xi2.org/x/mplayer-rc
+import:
+- package: golang.org/x/sys
+  subpackages:
+  - unix
