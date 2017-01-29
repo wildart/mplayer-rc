@@ -38,6 +38,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -89,6 +90,7 @@ var (
 	flagPassword      string
 	flagPort          string
 	flagRemapCommands bool
+	flagFormat        string
 )
 
 // variables set by config file processing
@@ -97,6 +99,7 @@ var (
 	confPassword      string
 	confPort          string = "8080"
 	confRemapCommands bool
+	confFormat        string = "xml"
 )
 
 func trimTrailingSpace(s string) string {
@@ -138,6 +141,10 @@ func processConfig() {
 			case "yes", "1", "true":
 				confRemapCommands = true
 			}
+		}
+		if strings.HasPrefix(scanner.Text(), "format=") {
+			p := scanner.Text()[len("format="):]
+			confFormat = strings.ToLower(trimTrailingSpace(p))
 		}
 	}
 }
@@ -269,6 +276,11 @@ func processFlags(args []string) []string {
 			flagRemapCommands = true
 			continue
 		}
+		if a == "-format" {
+			flagFormat = args[i+1]
+			i++
+			continue
+		}
 		if i < n-1 && a == "-password" {
 			flagPassword = args[i+1]
 			i++
@@ -391,6 +403,8 @@ var (
 	stopped bool
 	// whether we remap some VLC commands to perform alternate actions
 	remapCommands bool
+	// the response format (XML or JSON)
+	responseFormat string
 	// the backend, set by setBackend
 	backend *backendData
 )
@@ -575,10 +589,10 @@ type cmdSeek struct {
 	val  int // time in seconds/percent (can be positive or negative value)
 	mode int // mode: absolute/percent/relative
 }
-type cmdGetPlaylistXML struct {
+type cmdGetPlaylist struct {
 	replyChan chan<- string
 }
-type cmdGetStatusXML struct {
+type cmdGetStatus struct {
 	replyChan chan<- string
 }
 
@@ -838,6 +852,31 @@ const playlistTmplTxt = `
 </node>
 `
 
+type playlistChild interface {
+}
+
+type playlistNode struct {
+	Type     string          `json:"type"`
+	RO       string          `json:"ro"`
+	Name     string          `json:"name"`
+	ID       string          `json:"id"`
+	Children []playlistChild `json:"children"`
+}
+
+func NewPlaylistNode(name string, id int, rw bool) playlistNode {
+	pln := playlistNode{}
+	pln.Type = "node"
+	if rw {
+		pln.RO = "rw"
+	} else {
+		pln.RO = "ro"
+	}
+	pln.Name = name
+	pln.ID = strconv.Itoa(id)
+	pln.Children = []playlistChild{}
+	return pln
+}
+
 var playlistTmpl = template.Must(
 	template.New("playlist").Parse(playlistTmplTxt))
 
@@ -870,6 +909,39 @@ func funcGetPlaylistXML() string {
 	return buf.String()
 }
 
+func funcGetPlaylistJSON() string {
+	pl := NewPlaylistNode("Undefined", 1, true)
+	pl.Children = append(pl.Children, NewPlaylistNode("Playlist", 2, false))
+	pl.Children = append(pl.Children, NewPlaylistNode("Media Library", 3, false))
+	plc := pl.Children[0].(playlistNode)
+	for i := range playlist {
+		id := playlist[shufToPos[i]]
+		name := filepath.Base(idTrackMap[id])
+		cur := ""
+		if id == playlist[playpos] {
+			cur = "current"
+		}
+		ch := NewPlaylistNode(name, id, true)
+		leaf := struct {
+			playlistNode
+			URI      string `json:"uri"`
+			Duration int    `json:"duration"`
+			Type     string `json:"type"`
+			Current  string `json:"current,omitempty"`
+		}{
+			playlistNode: ch,
+			URI:          idTrackMap[id],
+			Duration:     3630,
+			Type:         "leaf",
+			Current:      cur,
+		}
+		plc.Children = append(plc.Children, leaf)
+	}
+	pl.Children[0] = plc
+	buf, _ := json.Marshal(pl)
+	return string(buf)
+}
+
 // status.xml
 
 const statusTmplTxt = `
@@ -895,19 +967,33 @@ const statusTmplTxt = `
 `
 
 type statusTmplData struct {
-	Fullscreen bool
-	Volume     int
-	Loop       bool
-	Random     bool
-	Length     int
-	Repeat     bool
-	State      string
-	Time       int
-	Title      string
-	Filename   string
+	Fullscreen bool   `json:"fullscreen"`
+	Volume     int    `json:"volume"`
+	Loop       bool   `json:"loop"`
+	Random     bool   `json:"random"`
+	Length     int    `json:"length"`
+	Repeat     bool   `json:"repeat"`
+	State      string `json:"state"`
+	Time       int    `json:"time"`
+	Title      string `json:"title,omitempty"`
+	Filename   string `json:"filename,omitempty"`
 }
 
 var statusTmpl = template.Must(template.New("status").Parse(statusTmplTxt))
+
+func getInt(prop string) int {
+	if i, err := strconv.Atoi(prop); err == nil {
+		return i
+	}
+	return 0
+}
+
+func getBool(prop string) bool {
+	if prop == "yes" {
+		return true
+	}
+	return false
+}
 
 // funcGetStatusXML constructs status.xml.
 func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
@@ -915,26 +1001,14 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 	get := func(prop string) string {
 		return getProp(in, outChan, prop)
 	}
-	getInt := func(prop string) int {
-		if i, err := strconv.Atoi(get(prop)); err == nil {
-			return i
-		}
-		return 0
-	}
-	getBool := func(prop string) bool {
-		if get(prop) == "yes" {
-			return true
-		}
-		return false
-	}
-	data.Fullscreen = getBool(backend.propFullscreen)
-	data.Volume = getInt(backend.propVolume)
+	data.Fullscreen = getBool(get(backend.propFullscreen))
+	data.Volume = getInt(get(backend.propVolume))
 	data.Loop = loop
 	data.Random = shuffle
-	data.Length = getInt(backend.propLength)
+	data.Length = getInt(get(backend.propLength))
 	data.Repeat = repeat
 	data.State = get("state")
-	data.Time = getInt(backend.propTimePos)
+	data.Time = getInt(get(backend.propTimePos))
 	filename := get(backend.propFilename)
 	if filename != "(unavailable)" {
 		data.Title = filename
@@ -947,6 +1021,50 @@ func funcGetStatusXML(in io.Writer, outChan <-chan string) string {
 		log.Fatal(err)
 	}
 	return buf.String()
+}
+
+// funcGetStatusJSON constructs status.json.
+func funcGetStatusJSON(in io.Writer, outChan <-chan string) string {
+	get := func(prop string) string {
+		return getProp(in, outChan, prop)
+	}
+	filename := get(backend.propFilename)
+	if filename == "(unavailable)" {
+		filename = ""
+	}
+	status := map[string]interface{}{
+		"audiodelay":    0,
+		"subtitledelay": 0,
+		"aspectratio":   "default",
+		"rate":          1,
+		"version":       "2.2.2 Weatherwax",
+		"repeat":        repeat,
+		"time":          getInt(get(backend.propTimePos)),
+		"currentplid":   playlist[playpos],
+		"information": map[string]interface{}{
+			"chapters": []string{},
+			"titles":   []string{},
+			"chapter":  0,
+			"title":    0,
+			"category": map[string]interface{}{
+				"meta": map[string]interface{}{
+					"filename": filename,
+					"album":    "",
+					"artist":   "",
+				},
+			},
+		},
+		"loop":       loop,
+		"volume":     getInt(get(backend.propVolume)),
+		"state":      get("state"),
+		"length":     getInt(get(backend.propLength)),
+		"random":     shuffle,
+		"fullscreen": getBool(get(backend.propFullscreen)),
+	}
+
+	buf, _ := json.Marshal(status)
+	// log.Println(string(buf))
+	return string(buf)
 }
 
 // startSelectLoop starts the select loop whose purpose is to
@@ -996,10 +1114,22 @@ func startSelectLoop(commandChan <-chan interface{}, in io.Writer, outChan <-cha
 					funcVolume(in, cmd.val, cmd.mode)
 				case cmdSeek:
 					funcSeek(in, cmd.val, cmd.mode)
-				case cmdGetPlaylistXML:
-					cmd.replyChan <- funcGetPlaylistXML()
-				case cmdGetStatusXML:
-					cmd.replyChan <- funcGetStatusXML(in, outChan)
+				case cmdGetPlaylist:
+					var playlist string = ""
+					if responseFormat == "xml" {
+						playlist = funcGetPlaylistXML()
+					} else if responseFormat == "json" {
+						playlist = funcGetPlaylistJSON()
+					}
+					cmd.replyChan <- playlist
+				case cmdGetStatus:
+					var status string = ""
+					if responseFormat == "xml" {
+						status = funcGetStatusXML(in, outChan)
+					} else if responseFormat == "json" {
+						status = funcGetStatusJSON(in, outChan)
+					}
+					cmd.replyChan <- status
 				}
 			case <-outChan:
 				// discard unused output from the backend
@@ -1030,8 +1160,9 @@ func authorized(
 }
 
 func startWebServer(commandChan chan<- interface{}, password, port string) {
+	staturl := "/requests/status." + responseFormat
 	http.HandleFunc(
-		"/requests/status.xml", func(w http.ResponseWriter, r *http.Request) {
+		staturl, func(w http.ResponseWriter, r *http.Request) {
 			if !authorized(w, r, "", password) {
 				return
 			}
@@ -1128,22 +1259,27 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 						commandChan <- cmdSeek{val: i, mode: mode}
 					}
 				}
-			default:
-				// output status.xml
-				replyChan := make(chan string, 1)
-				commandChan <- cmdGetStatusXML{replyChan: replyChan}
-				io.WriteString(w, <-replyChan)
+				// default:
+				// 	// output status.xml
+				// 	replyChan := make(chan string, 1)
+				// 	commandChan <- cmdGetStatus{replyChan: replyChan}
+				// 	io.WriteString(w, <-replyChan)
 			}
+			// output status.xml
+			replyChan := make(chan string, 1)
+			commandChan <- cmdGetStatus{replyChan: replyChan}
+			io.WriteString(w, <-replyChan)
 		})
+	plurl := "/requests/playlist." + responseFormat
 	http.HandleFunc(
-		"/requests/playlist.xml",
+		plurl,
 		func(w http.ResponseWriter, r *http.Request) {
 			if !authorized(w, r, "", password) {
 				return
 			}
 			// output playlist.xml
 			replyChan := make(chan string, 1)
-			commandChan <- cmdGetPlaylistXML{replyChan: replyChan}
+			commandChan <- cmdGetPlaylist{replyChan: replyChan}
 			io.WriteString(w, <-replyChan)
 		})
 	if http.ListenAndServe(":"+port, nil) != nil {
@@ -1159,10 +1295,14 @@ func main() {
 	flags := processFlags(args)
 	// set some variables from config file
 	remapCommands = confRemapCommands
+	responseFormat = confFormat
 	password, port := confPassword, confPort
 	// override with flags if appropriate
 	if flagRemapCommands {
 		remapCommands = true
+	}
+	if flagFormat != "" {
+		responseFormat = flagFormat
 	}
 	if flagPassword != "" {
 		password = flagPassword
