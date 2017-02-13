@@ -46,8 +46,10 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -595,6 +597,14 @@ type cmdGetPlaylist struct {
 type cmdGetStatus struct {
 	replyChan chan<- string
 }
+type cmdGetBrowse struct {
+	replyChan chan<- string
+	uri       string
+}
+type cmdQuit struct{}
+type cmdSetPlaylist struct {
+	uri string
+}
 
 // funcPlay plays the track given by id or plays the current playlist
 // entry if id is invalid. By convention -1 is the invalid id used to
@@ -1067,6 +1077,70 @@ func funcGetStatusJSON(in io.Writer, outChan <-chan string) string {
 	return string(buf)
 }
 
+func funcGetBrowseXML(uri string) string {
+	u, err := url.Parse(uri)
+	if err != nil {
+		log.Fatal(err)
+		return "<root></root>"
+	}
+	log.Println(u)
+	return "<root></root>"
+}
+
+func funcGetBrowseJSON(uri string) string {
+	u, err := url.Parse(uri)
+	if err != nil {
+		log.Fatal(err)
+		return "{\"element\":[]}"
+	}
+
+	elements := [](map[string]interface{}){}
+	// if u.Path != "/" {
+	elements = append(elements, map[string]interface{}{
+		"uri":  uri + "/..",
+		"type": "dir",
+		"size": 4096,
+		"name": "..",
+		"path": u.Path + "/..",
+	})
+	// }
+	files, _ := ioutil.ReadDir(u.Path)
+	for _, f := range files {
+		ftype, fsize := "dir", int64(4096)
+		if !f.IsDir() {
+			ftype = "file"
+			fsize = f.Size()
+		}
+		fpath := path.Join(u.Path, f.Name())
+		elements = append(elements, map[string]interface{}{
+			"uri":  u.Scheme + "://" + fpath,
+			"type": ftype,
+			"size": fsize,
+			"name": f.Name(),
+			"path": fpath,
+		})
+	}
+
+	buf, _ := json.Marshal(map[string]interface{}{
+		"element": elements,
+	})
+	// log.Println(string(buf))
+	return string(buf)
+}
+
+func funcSetPlaylist(in io.Writer, uri string) {
+	u, err := url.Parse(uri)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	// Add to internal playlist
+	addPlaylistEntry(u.Path)
+	// Add to player playlist
+	fmt.Fprintf(in, backend.cmdNoop+"\n")
+	fmt.Fprintf(in, backend.cmdLoadfile+"\n", escapeTrack(idTrackMap[idCounter-1]))
+}
+
 // startSelectLoop starts the select loop whose purpose is to
 // serialize the execution of commands sent to the backend. In a
 // goroutine it uses select to wait on either a command over the
@@ -1130,6 +1204,19 @@ func startSelectLoop(commandChan <-chan interface{}, in io.Writer, outChan <-cha
 						status = funcGetStatusJSON(in, outChan)
 					}
 					cmd.replyChan <- status
+				case cmdGetBrowse:
+					var browsefiles string = ""
+					if responseFormat == "xml" {
+						browsefiles = funcGetBrowseXML(cmd.uri)
+					} else if responseFormat == "json" {
+						browsefiles = funcGetBrowseJSON(cmd.uri)
+					}
+					cmd.replyChan <- browsefiles
+				case cmdSetPlaylist:
+					funcSetPlaylist(in, cmd.uri)
+				case cmdQuit:
+					fmt.Fprintf(in, backend.cmdQuit+"\n")
+					os.Exit(0)
 				}
 			case <-outChan:
 				// discard unused output from the backend
@@ -1197,6 +1284,8 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 					commandChan <- cmdAudio{}
 				case "subtitle-track":
 					commandChan <- cmdSubtitle{}
+				case "quit":
+					commandChan <- cmdQuit{}
 				}
 			case "fullscreen":
 				commandChan <- cmdFullscreen{}
@@ -1259,13 +1348,12 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 						commandChan <- cmdSeek{val: i, mode: mode}
 					}
 				}
-				// default:
-				// 	// output status.xml
-				// 	replyChan := make(chan string, 1)
-				// 	commandChan <- cmdGetStatus{replyChan: replyChan}
-				// 	io.WriteString(w, <-replyChan)
+			case "in_play":
+				if inPath := r.FormValue("input"); inPath != "" {
+					commandChan <- cmdSetPlaylist{uri: inPath}
+				}
 			}
-			// output status.xml
+			// allways output status after operation
 			replyChan := make(chan string, 1)
 			commandChan <- cmdGetStatus{replyChan: replyChan}
 			io.WriteString(w, <-replyChan)
@@ -1277,9 +1365,21 @@ func startWebServer(commandChan chan<- interface{}, password, port string) {
 			if !authorized(w, r, "", password) {
 				return
 			}
-			// output playlist.xml
+			// output playlist
 			replyChan := make(chan string, 1)
 			commandChan <- cmdGetPlaylist{replyChan: replyChan}
+			io.WriteString(w, <-replyChan)
+		})
+	brwurl := "/requests/browse." + responseFormat
+	http.HandleFunc(
+		brwurl,
+		func(w http.ResponseWriter, r *http.Request) {
+			if !authorized(w, r, "", password) {
+				return
+			}
+			// output browse data
+			replyChan := make(chan string, 1)
+			commandChan <- cmdGetBrowse{replyChan: replyChan, uri: r.URL.Query().Get("uri")}
 			io.WriteString(w, <-replyChan)
 		})
 	if http.ListenAndServe(":"+port, nil) != nil {

@@ -61,6 +61,7 @@ type backendData struct {
 	cmdSwitchRatio string
 	cmdVolumeAbs   string
 	cmdVolumeRel   string
+	cmdQuit        string
 
 	propAspect     string
 	propFilename   string
@@ -101,6 +102,7 @@ var backendMPlayer = backendData{
 	cmdSwitchRatio: "pausing_keep_force switch_ratio %s",
 	cmdVolumeAbs:   "pausing_keep_force volume %d 1",
 	cmdVolumeRel:   "pausing_keep_force volume %d 0",
+	cmdQuit:        "quit",
 
 	propAspect:     "aspect",
 	propFilename:   "filename",
@@ -141,6 +143,7 @@ var backendMPV = backendData{
 	cmdSwitchRatio: mpvCmdSwitchRatio,
 	cmdVolumeAbs:   "set volume %d",
 	cmdVolumeRel:   "add volume %d",
+	cmdQuit:        "quit",
 
 	propAspect:     mpvPropAspect,
 	propFilename:   "filename",
